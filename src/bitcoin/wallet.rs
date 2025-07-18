@@ -59,19 +59,23 @@ impl Wallet {
     }
 
     pub fn start_full_scan(&self) -> FullScanRequest {
-        self.0.borrow().start_full_scan().build().into()
+        self.0
+            .borrow()
+            .start_full_scan_at((Date::now() / 1000.0) as u64)
+            .build()
+            .into()
     }
 
     pub fn start_sync_with_revealed_spks(&self) -> SyncRequest {
-        self.0.borrow().start_sync_with_revealed_spks().build().into()
+        self.0
+            .borrow()
+            .start_sync_with_revealed_spks_at((Date::now() / 1000.0) as u64)
+            .build()
+            .into()
     }
 
     pub fn apply_update(&self, update: Update) -> JsResult<()> {
-        self.apply_update_at(update, (Date::now() / 1000.0) as u64)
-    }
-
-    pub fn apply_update_at(&self, update: Update, seen_at: u64) -> JsResult<()> {
-        self.0.borrow_mut().apply_update_at(update, seen_at)?;
+        self.0.borrow_mut().apply_update(update)?;
         Ok(())
     }
 
