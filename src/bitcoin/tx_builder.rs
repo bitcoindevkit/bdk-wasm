@@ -1,10 +1,10 @@
 use std::{cell::RefCell, rc::Rc};
 
-use bdk_wallet::{bitcoin::ScriptBuf, error::CreateTxError, Wallet as BdkWallet};
+use bdk_wallet::{error::CreateTxError, TxOrdering as BdkTxOrdering, Wallet as BdkWallet};
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::types::{Address, Amount, BdkError, BdkErrorCode, FeeRate, OutPoint, Psbt, Recipient};
+use crate::types::{Amount, BdkError, BdkErrorCode, FeeRate, OutPoint, Psbt, Recipient, ScriptBuf};
 
 /// A transaction builder.
 ///
@@ -22,6 +22,7 @@ pub struct TxBuilder {
     drain_wallet: bool,
     drain_to: Option<ScriptBuf>,
     allow_dust: bool,
+    ordering: TxOrdering,
 }
 
 #[wasm_bindgen]
@@ -36,6 +37,7 @@ impl TxBuilder {
             drain_wallet: false,
             allow_dust: false,
             drain_to: None,
+            ordering: BdkTxOrdering::default().into(),
         }
     }
 
@@ -95,8 +97,8 @@ impl TxBuilder {
     ///
     /// If you choose not to set any recipients, you should provide the utxos that the
     /// transaction should spend via [`add_utxos`].
-    pub fn drain_to(mut self, address: Address) -> Self {
-        self.drain_to = Some(address.script_pubkey());
+    pub fn drain_to(mut self, script_pubkey: ScriptBuf) -> Self {
+        self.drain_to = Some(script_pubkey);
         self
     }
 
@@ -108,6 +110,12 @@ impl TxBuilder {
         self
     }
 
+    /// Choose the ordering for inputs and outputs of the transaction
+    pub fn ordering(mut self, ordering: TxOrdering) -> Self {
+        self.ordering = ordering;
+        self
+    }
+
     /// Finish building the transaction.
     ///
     /// Returns a new [`Psbt`] per [`BIP174`].
@@ -116,6 +124,7 @@ impl TxBuilder {
         let mut builder = wallet.build_tx();
 
         builder
+            .ordering(self.ordering.into())
             .set_recipients(self.recipients.into_iter().map(Into::into).collect())
             .unspendable(self.unspendable.into_iter().map(Into::into).collect())
             .fee_rate(self.fee_rate.into())
@@ -126,11 +135,41 @@ impl TxBuilder {
         }
 
         if let Some(drain_recipient) = self.drain_to {
-            builder.drain_to(drain_recipient);
+            builder.drain_to(drain_recipient.into());
         }
 
         let psbt = builder.finish()?;
         Ok(psbt.into())
+    }
+}
+
+/// Ordering of the transaction's inputs and outputs
+#[derive(Clone, Default)]
+#[wasm_bindgen]
+pub enum TxOrdering {
+    /// Randomized (default)
+    #[default]
+    Shuffle,
+    /// Unchanged
+    Untouched,
+}
+
+impl From<BdkTxOrdering> for TxOrdering {
+    fn from(ordering: BdkTxOrdering) -> Self {
+        match ordering {
+            BdkTxOrdering::Shuffle => TxOrdering::Shuffle,
+            BdkTxOrdering::Untouched => TxOrdering::Untouched,
+            _ => panic!("Unsupported ordering"),
+        }
+    }
+}
+
+impl From<TxOrdering> for BdkTxOrdering {
+    fn from(ordering: TxOrdering) -> Self {
+        match ordering {
+            TxOrdering::Shuffle => BdkTxOrdering::Shuffle,
+            TxOrdering::Untouched => BdkTxOrdering::Untouched,
+        }
     }
 }
 

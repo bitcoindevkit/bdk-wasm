@@ -96,6 +96,11 @@ impl Address {
     pub fn to_string(&self) -> String {
         self.0.to_string()
     }
+
+    #[wasm_bindgen(getter)]
+    pub fn script_pubkey(&self) -> ScriptBuf {
+        self.0.script_pubkey().into()
+    }
 }
 
 impl From<BdkAddress> for Address {
@@ -133,6 +138,7 @@ impl From<ParseError> for BdkError {
 /// `ScriptBuf` is the most common script type that has the ownership over the contents of the
 /// script. It has a close relationship with its borrowed counterpart, [`Script`].
 #[wasm_bindgen]
+#[derive(Clone)]
 pub struct ScriptBuf(BdkScriptBuf);
 
 impl Deref for ScriptBuf {
@@ -145,6 +151,15 @@ impl Deref for ScriptBuf {
 
 #[wasm_bindgen]
 impl ScriptBuf {
+    pub fn from_hex(s: &str) -> JsResult<Self> {
+        let script = BdkScriptBuf::from_hex(s)?;
+        Ok(script.into())
+    }
+
+    pub fn from_bytes(bytes: Vec<u8>) -> Self {
+        BdkScriptBuf::from_bytes(bytes).into()
+    }
+
     #[allow(clippy::inherent_to_string)]
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
@@ -153,6 +168,18 @@ impl ScriptBuf {
 
     pub fn as_bytes(&self) -> Vec<u8> {
         self.0.as_bytes().to_vec()
+    }
+
+    pub fn to_asm_string(&self) -> String {
+        self.0.to_asm_string()
+    }
+
+    pub fn to_hex_string(&self) -> String {
+        self.0.to_hex_string()
+    }
+
+    pub fn is_op_return(&self) -> bool {
+        self.0.is_op_return()
     }
 }
 
