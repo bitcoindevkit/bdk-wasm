@@ -21,17 +21,30 @@ jobs:
           toolchain: stable
       - name: Install wasm-pack
         run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
+      - name: Install jq
+        run: apt-get update -y && apt-get install -y jq
       - name: Rust Cache
         uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
       - name: Build
-        run: wasm-pack build --scope bitcoindevkit --features "esplora"
+        run: |
+          wasm-pack build --target bundler --out-dir pkg-web --features "esplora"
+          cd pkg-web
+          jq '.name = "bdk-wallet-web"' package.json > temp.json && mv temp.json package.json
+          cd ..
+          wasm-pack build --target nodejs --out-dir pkg-node --all-features
+          cd pkg-node
+          jq '.name = "bdk-wallet-node"' package.json > temp.json && mv temp.json package.json
+          cd ..
       - uses: actions/cache@v4
         with:
-          path: |
-            ./pkg
-          key: ${{ github.sha }}
+          path: ./pkg-web
+          key: ${{ github.sha }}-web
+      - uses: actions/cache@v4
+        with:
+          path: ./pkg-node
+          key: ${{ github.sha }}-node
 
-  publish-npm-dry-run:
+  publish-npm-dry-run-web:
     runs-on: ubuntu-latest
     needs: publish-release
     steps:
@@ -44,17 +57,37 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ./pkg
-          key: ${{ github.sha }}
+            ./pkg-web
+          key: ${{ github.sha }}-web
           fail-on-cache-miss: true
       - name: Dry Run Publish
-        working-directory: pkg
+        working-directory: pkg-web
+        run: npm publish --dry-run
+
+  publish-npm-dry-run-node:
+    runs-on: ubuntu-latest
+    needs: publish-release
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          ref: ${{ github.sha }}
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "lts/*"
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ./pkg-node
+          key: ${{ github.sha }}-node
+          fail-on-cache-miss: true
+      - name: Dry Run Publish
+        working-directory: pkg-node
         run: npm publish --dry-run
 
   publish-npm:
     environment: npm-publish
     runs-on: ubuntu-latest
-    needs: publish-npm-dry-run
+    needs: [publish-npm-dry-run-web, publish-npm-dry-run-node]
     steps:
       - uses: actions/checkout@v4
         with:
@@ -66,11 +99,23 @@ jobs:
       - uses: actions/cache@v4
         with:
           path: |
-            ./pkg
-          key: ${{ github.sha }}
+            ./pkg-web
+          key: ${{ github.sha }}-web
           fail-on-cache-miss: true
-      - name: Publish
-        working-directory: pkg
+      - uses: actions/cache@v4
+        with:
+          path: |
+            ./pkg-node
+          key: ${{ github.sha }}-node
+          fail-on-cache-miss: true
+      - name: Publish web
+        working-directory: pkg-web
+        run: npm publish --access=public
+        env:
+          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
+          SKIP_PREPACK: true
+      - name: Publish node
+        working-directory: pkg-node
         run: npm publish --access=public
         env:
           NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
