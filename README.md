@@ -8,7 +8,8 @@
   </p>
 
   <p>
-    <a href="https://www.npmjs.com/package/@bitcoindevkit/bitcoindevkit"><img alt="NPM Package" src="https://img.shields.io/npm/v/@bitcoindevkit/bitcoindevkit.svg"/></a>
+    <a href="https://www.npmjs.com/package/bdk-wallet-web"><img alt="NPM Package (Web)" src="https://img.shields.io/npm/v/bdk-wallet-web.svg"/></a>
+    <a href="https://www.npmjs.com/package/bdk-wallet-node"><img alt="NPM Package (Node)" src="https://img.shields.io/npm/v/bdk-wallet-node.svg"/></a>
     <a href="https://github.com/bitcoindevkit/bdk-wasm/blob/master/LICENSE"><img alt="MIT or Apache-2.0 Licensed" src="https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg"/></a>
     <a href="https://blog.rust-lang.org/2023/10/05/Rust-1.73.0.html"><img alt="Rustc Version 1.73.0+" src="https://img.shields.io/badge/rustc-1.73.0%2B-lightgrey.svg"/></a>
     <a href="https://discord.gg/d7NkDKm"><img alt="Chat on Discord" src="https://img.shields.io/discord/753336465005608961?logo=discord"></a>
@@ -21,7 +22,7 @@
 The `bdk-wasm` library aims at providing access to the excellent [BitcoinDevKit](https://github.com/bitcoindevkit/bdk) to JS and Node environments (and eventually any device supporting WebAssembly).
 It specializes in compiling BDK on the `wasm32-unknown-unknown` target and use [`wasm-bindgen`](https://github.com/rustwasm/wasm-bindgen) to create TypeScript bindings.
 
-This repo handles the packaging and publishing of the `bitcoindevkit` NPM package, using `wasm-pack`.
+This repo handles the packaging and publishing of the `bdk-wallet-web` (for browsers) and `bdk-wallet-node` (for Node.js) NPM packages, using `wasm-pack`.
 
 This library offers all the desired functionality to build a Bitcoin wallet out of the box:
 
@@ -36,10 +37,18 @@ This library offers all the desired functionality to build a Bitcoin wallet out 
 
 For a lightweight library providing stateless utility functions, see [`bitcoinjs`](https://github.com/bitcoinjs/bitcoinjs-lib).
 
-## Browser Usage
+## Installation
+
+### Browser/Web
 
 ```sh
-yarn add bitcoindevkit
+yarn add bdk-wallet-web
+```
+
+### Node.js
+
+```sh
+yarn add bdk-wallet-node
 ```
 
 ## Notes on WASM Specific Considerations
@@ -80,11 +89,17 @@ Refers to [this section](./DEVELOPMENT.md#build-on-macos).
 > rustup target add wasm32-unknown-unknown
 > ```
 
+To build for browser/web:
+
 ```sh
-wasm-pack build
+wasm-pack build --target bundler --features "esplora"
 ```
 
-> Choose your desired features when building: `--features "esplora"`
+To build for Node.js:
+
+```sh
+wasm-pack build --target nodejs --all-features
+```
 
 ### Test in Headless Browsers with `wasm-pack test`
 
