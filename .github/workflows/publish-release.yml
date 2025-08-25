@@ -29,11 +29,11 @@ jobs:
         run: |
           wasm-pack build --scope bitcoindevkit --target bundler --out-dir pkg-web --features "esplora"
           cd pkg-web
-          jq '.name = "bdk-wallet-web"' package.json > temp.json && mv temp.json package.json
+          jq '.name = "@bitcoindevkit/bdk-wallet-web"' package.json > temp.json && mv temp.json package.json
           cd ..
           wasm-pack build --scope bitcoindevkit --target nodejs --out-dir pkg-node --all-features
           cd pkg-node
-          jq '.name = "bdk-wallet-node"' package.json > temp.json && mv temp.json package.json
+          jq '.name = "@bitcoindevkit/bdk-wallet-node"' package.json > temp.json && mv temp.json package.json
           cd ..
       - uses: actions/cache@v4
         with:
