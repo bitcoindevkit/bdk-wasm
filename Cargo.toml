@@ -1,15 +1,9 @@
 [package]
 name = "bitcoindevkit"
-version = "0.1.13"
+version = "0.2.0"
 repository = "https://github.com/bitcoindevkit/bdk-wasm"
 description = "A modern, lightweight, descriptor-based wallet library in WebAssembly for browsers and Node"
-keywords = [
-    "bitcoin",
-    "descriptor",
-    "wasm",
-    "browser",
-    "node",
-]
+keywords = ["bitcoin", "descriptor", "wasm", "browser", "node"]
 readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = ["Bitcoin Developers"]
@@ -51,7 +45,6 @@ console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [dev-dependencies]
 wasm-bindgen-test = "0.3.50"
-bdk_wallet = { version = "2.0.0", features = ["keys-bip39"] }
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.
