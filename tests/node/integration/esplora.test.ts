@@ -17,9 +17,9 @@ describe("Esplora client", () => {
   const stopGap = 2;
   const parallelRequests = 10;
   const externalDescriptor =
-    "wpkh(tprv8ZgxMBicQKsPe2qpAuh1K1Hig72LCoP4JgNxZM2ZRWHZYnpuw5oHoGBsQm7Qb8mLgPpRJVn3hceWgGQRNbPD6x1pp2Qme2YFRAPeYh7vmvE/84'/1'/0'/0/*)#a6kgzlgq";
+    "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/0/*)#jjcsy5wd";
   const internalDescriptor =
-    "wpkh(tprv8ZgxMBicQKsPe2qpAuh1K1Hig72LCoP4JgNxZM2ZRWHZYnpuw5oHoGBsQm7Qb8mLgPpRJVn3hceWgGQRNbPD6x1pp2Qme2YFRAPeYh7vmvE/84'/1'/0'/1/*)#vwnfl2cc";
+    "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/1/*)#rxa3ep74";
   const network: Network = "signet";
   const esploraUrl = "https://mutinynet.com/api";
   const recipientAddress = Address.from_string(
@@ -35,7 +35,7 @@ describe("Esplora client", () => {
   it("creates a new wallet", () => {
     wallet = Wallet.create(network, externalDescriptor, internalDescriptor);
     expect(wallet.peek_address("external", 0).address.toString()).toBe(
-      "tb1qq2a8ypxglm07luzq8rl29vxkrwxt3j04ac84ze"
+      "tb1qkn59f87tznmmjw5nu6ng8p7k6vcur2eme637rm"
     );
   });
 
@@ -110,7 +110,7 @@ describe("Esplora client", () => {
 
   it("fills inputs of an output-only Psbt", () => {
     const psbtBase64 =
-      "cHNidP8BAI4CAAAAAAM1gwEAAAAAACJRIORP1Ndiq325lSC/jMG0RlhATHYmuuULfXgEHUM3u5i4AAAAAAAAAAAxai8AAUSx+i9Igg4HWdcpyagCs8mzuRCklgA7nRMkm69rAAAAAAAAAAAAAQACAAAAACp2AAAAAAAAFgAUArpyBMj+3+/wQDj+orDWG4y4yfUAAAAAAAAAAAA=";
+      "cHNidP8BAI4CAAAAAAM1gwEAAAAAACJRIORP1Ndiq325lSC/jMG0RlhATHYmuuULfXgEHUM3u5i4AAAAAAAAAAAxai8AAUSx+i9Igg4HWdcpyagCs8mzuRCklgA7nRMkm69rAAAAAAAAAAAAAQACAAAAACp2AAAAAAAAFgAUtOhUn8sU97k6k+amg4fW0zHBqzsAAAAAAAAAAAA=";
     const template = Psbt.from_string(psbtBase64);
 
     let builder = wallet
