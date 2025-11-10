@@ -64,14 +64,12 @@ impl ScriptBuf {
 
     /// Returns the minimum value an output with this script should have in order to be
     /// broadcastable on today's Bitcoin network.
-    #[wasm_bindgen(getter)]
     pub fn minimal_non_dust(&self) -> Amount {
         self.0.minimal_non_dust().into()
     }
 
     /// Returns the minimum value an output with this script should have in order to be
     /// broadcastable on today's Bitcoin network.
-    #[wasm_bindgen(getter)]
     pub fn minimal_non_dust_custom(&self, dust_relay_fee: FeeRate) -> Amount {
         self.0.minimal_non_dust_custom(dust_relay_fee.into()).into()
     }
