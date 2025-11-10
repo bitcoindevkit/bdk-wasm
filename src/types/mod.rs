@@ -14,6 +14,7 @@ mod output;
 mod psbt;
 mod slip10;
 mod transaction;
+mod script;
 
 pub use address::*;
 pub use amount::*;
@@ -31,3 +32,4 @@ pub use output::*;
 pub use psbt::*;
 pub use slip10::*;
 pub use transaction::*;
+pub use script::*;

@@ -1,11 +1,11 @@
 use std::ops::Deref;
 
-use bdk_wallet::bitcoin::{Amount as BdkAmount, Denomination as BdkDenomination};
-use bitcoin::amount::ParseAmountError;
+use bdk_wallet::{IsDust, bitcoin::{Amount as BdkAmount, Denomination as BdkDenomination}};
+use bitcoin::{amount::ParseAmountError};
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::types::{BdkError, BdkErrorCode};
+use crate::types::{ BdkError, BdkErrorCode, ScriptBuf};
 
 /// Amount
 ///
@@ -43,6 +43,12 @@ impl Amount {
     /// Please be aware of the risk of using floating-point numbers.
     pub fn to_float_in(&self, denom: Denomination) -> f64 {
         self.0.to_float_in(denom.into())
+    }
+
+    /// Check whether or not a value is below dust limit
+    /// for a given script
+    pub fn is_dust(&self, script: ScriptBuf) -> bool {
+        self.0.is_dust(&script)
     }
 }
 
