@@ -3,7 +3,10 @@ use std::ops::Deref;
 use bdk_wallet::bitcoin::ScriptBuf as BdkScriptBuf;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::{result::JsResult, types::{Amount, FeeRate}};
+use crate::{
+    result::JsResult,
+    types::{Amount, FeeRate},
+};
 
 /// An owned, growable script.
 ///

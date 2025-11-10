@@ -1,11 +1,14 @@
 use std::ops::Deref;
 
-use bdk_wallet::{IsDust, bitcoin::{Amount as BdkAmount, Denomination as BdkDenomination}};
-use bitcoin::{amount::ParseAmountError};
+use bdk_wallet::{
+    bitcoin::{Amount as BdkAmount, Denomination as BdkDenomination},
+    IsDust,
+};
+use bitcoin::amount::ParseAmountError;
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::types::{ BdkError, BdkErrorCode, ScriptBuf};
+use crate::types::{BdkError, BdkErrorCode, ScriptBuf};
 
 /// Amount
 ///
