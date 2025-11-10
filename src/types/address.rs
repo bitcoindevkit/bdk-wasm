@@ -1,7 +1,7 @@
 use std::{ops::Deref, str::FromStr};
 
 use bdk_wallet::{
-    bitcoin::{Address as BdkAddress, AddressType as BdkAddressType, Network as BdkNetwork, ScriptBuf as BdkScriptBuf},
+    bitcoin::{Address as BdkAddress, AddressType as BdkAddressType, Network as BdkNetwork},
     AddressInfo as BdkAddressInfo,
 };
 use bitcoin::address::ParseError;
@@ -9,7 +9,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::{
     result::JsResult,
-    types::{BdkError, BdkErrorCode},
+    types::{BdkError, BdkErrorCode, ScriptBuf},
 };
 
 use super::{KeychainKind, Network};
@@ -140,73 +140,6 @@ impl From<ParseError> for BdkError {
             NetworkValidation(_) => BdkError::new(BdkErrorCode::NetworkValidation, e.to_string(), ()),
             _ => BdkError::new(BdkErrorCode::Unexpected, e.to_string(), ()),
         }
-    }
-}
-
-/// An owned, growable script.
-///
-/// `ScriptBuf` is the most common script type that has the ownership over the contents of the
-/// script. It has a close relationship with its borrowed counterpart, [`Script`].
-#[wasm_bindgen]
-#[derive(Clone)]
-pub struct ScriptBuf(BdkScriptBuf);
-
-impl Deref for ScriptBuf {
-    type Target = BdkScriptBuf;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-#[wasm_bindgen]
-impl ScriptBuf {
-    pub fn from_hex(s: &str) -> JsResult<Self> {
-        let script = BdkScriptBuf::from_hex(s)?;
-        Ok(script.into())
-    }
-
-    pub fn from_bytes(bytes: Vec<u8>) -> Self {
-        BdkScriptBuf::from_bytes(bytes).into()
-    }
-
-    #[allow(clippy::inherent_to_string)]
-    #[wasm_bindgen(js_name = toString)]
-    pub fn to_string(&self) -> String {
-        self.0.to_string()
-    }
-
-    pub fn as_bytes(&self) -> Vec<u8> {
-        self.0.as_bytes().to_vec()
-    }
-
-    pub fn to_asm_string(&self) -> String {
-        self.0.to_asm_string()
-    }
-
-    pub fn to_hex_string(&self) -> String {
-        self.0.to_hex_string()
-    }
-
-    pub fn is_op_return(&self) -> bool {
-        self.0.is_op_return()
-    }
-
-    #[wasm_bindgen(js_name = clone)]
-    pub fn js_clone(&self) -> ScriptBuf {
-        self.clone()
-    }
-}
-
-impl From<BdkScriptBuf> for ScriptBuf {
-    fn from(inner: BdkScriptBuf) -> Self {
-        ScriptBuf(inner)
-    }
-}
-
-impl From<ScriptBuf> for BdkScriptBuf {
-    fn from(script_buf: ScriptBuf) -> Self {
-        script_buf.0
     }
 }
 
