@@ -1,6 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use bdk_wallet::{SignOptions as BdkSignOptions, Wallet as BdkWallet};
+#[allow(deprecated)]
+use bdk_wallet::SignOptions as BdkSignOptions;
+use bdk_wallet::Wallet as BdkWallet;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::js_sys::Date;
 
@@ -217,9 +219,16 @@ impl Wallet {
     }
 }
 
+/// Options for signing a PSBT.
+///
+/// Note: `bdk_wallet::SignOptions` is deprecated upstream (BDK 2.2.0) in favor of
+/// `bitcoin::psbt::Psbt::sign()`. However, `Wallet::sign` still requires `SignOptions`
+/// internally, so we continue wrapping it until BDK provides a migration path.
+#[allow(deprecated)]
 #[wasm_bindgen]
 pub struct SignOptions(BdkSignOptions);
 
+#[allow(deprecated)]
 #[wasm_bindgen]
 impl SignOptions {
     #[wasm_bindgen(constructor)]
@@ -288,12 +297,14 @@ impl SignOptions {
     }
 }
 
+#[allow(deprecated)]
 impl From<SignOptions> for BdkSignOptions {
     fn from(options: SignOptions) -> Self {
         options.0
     }
 }
 
+#[allow(deprecated)]
 impl Default for SignOptions {
     fn default() -> Self {
         Self::new()
