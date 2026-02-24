@@ -23,6 +23,7 @@ pub struct TxBuilder {
     drain_to: Option<ScriptBuf>,
     allow_dust: bool,
     ordering: TxOrdering,
+    min_confirmations: Option<u32>,
 }
 
 #[wasm_bindgen]
@@ -38,6 +39,7 @@ impl TxBuilder {
             allow_dust: false,
             drain_to: None,
             ordering: BdkTxOrdering::default().into(),
+            min_confirmations: None,
         }
     }
 
@@ -110,20 +112,7 @@ impl TxBuilder {
     ///   [`exclude_unconfirmed`]).
     /// - Passing `6` will only allow outpoints from transactions with at least 6 confirmations.
     pub fn exclude_below_confirmations(mut self, min_confirms: u32) -> Self {
-        let wallet = self.wallet.borrow();
-        let tip_height = wallet.latest_checkpoint().height();
-        let to_exclude: Vec<OutPoint> = wallet
-            .list_unspent()
-            .filter(|utxo| {
-                utxo.chain_position
-                    .confirmation_height_upper_bound()
-                    .map_or(0, |h| tip_height.saturating_add(1).saturating_sub(h))
-                    < min_confirms
-            })
-            .map(|utxo| utxo.outpoint.into())
-            .collect();
-        drop(wallet);
-        self.unspendable.extend(to_exclude);
+        self.min_confirmations = Some(min_confirms);
         self
     }
 
@@ -161,6 +150,10 @@ impl TxBuilder {
             .unspendable(self.unspendable.into_iter().map(Into::into).collect())
             .fee_rate(self.fee_rate.into())
             .allow_dust(self.allow_dust);
+
+        if let Some(min_confirms) = self.min_confirmations {
+            builder.exclude_below_confirmations(min_confirms);
+        }
 
         if self.drain_wallet {
             builder.drain_wallet();
