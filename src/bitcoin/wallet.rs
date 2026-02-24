@@ -33,6 +33,22 @@ impl Wallet {
         Ok(Wallet(Rc::new(RefCell::new(wallet))))
     }
 
+    /// Create a new [`Wallet`] from a BIP-389 two-path multipath descriptor.
+    ///
+    /// The descriptor must contain exactly two derivation paths (receive and change),
+    /// separated by a semicolon in angle brackets, e.g.:
+    /// `wpkh([fingerprint/path]xpub.../<0;1>/*)`
+    ///
+    /// The first path is used for the external (receive) keychain and the second
+    /// for the internal (change) keychain.
+    pub fn create_from_two_path_descriptor(network: Network, descriptor: String) -> JsResult<Wallet> {
+        let wallet = BdkWallet::create_from_two_path_descriptor(descriptor)
+            .network(network.into())
+            .create_wallet_no_persist()?;
+
+        Ok(Wallet(Rc::new(RefCell::new(wallet))))
+    }
+
     pub fn load(
         changeset: ChangeSet,
         external_descriptor: Option<String>,
