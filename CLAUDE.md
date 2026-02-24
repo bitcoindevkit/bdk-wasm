@@ -108,7 +108,18 @@ BDK uses a monorepo-ish approach: `bdk_wallet` and `bdk_esplora` versions must b
 
 ## Conventions
 
-- **Conventional commits:** `feat:`, `fix:`, `chore:`, `refactor:`, `docs:`, `test:`
+- **Conventional commits** (required for all commits and PR titles):
+  - `feat:` — New feature or API wrapper
+  - `fix:` — Bug fix
+  - `refactor:` — Code restructuring without behavior change
+  - `docs:` — Documentation only
+  - `test:` — Adding or updating tests
+  - `chore:` — Maintenance (deps, config, tooling)
+  - `ci:` — CI/CD pipeline changes
+  - `build:` — Build system changes
+  - Scope is optional but encouraged: `feat(wallet):`, `fix(tx_builder):`, `chore(deps):`
+  - Breaking changes: add `!` after type, e.g. `feat!:` or `feat(wallet)!:`
+  - These prefixes feed into CHANGELOG.md generation
 - **Formatting:** `cargo fmt` with default settings
 - **All public items must be documented**
 - **Safe Rust only** — no `unsafe` without exceptional justification
