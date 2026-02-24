@@ -23,6 +23,7 @@ pub struct TxBuilder {
     drain_to: Option<ScriptBuf>,
     allow_dust: bool,
     ordering: TxOrdering,
+    min_confirmations: Option<u32>,
 }
 
 #[wasm_bindgen]
@@ -38,6 +39,7 @@ impl TxBuilder {
             allow_dust: false,
             drain_to: None,
             ordering: BdkTxOrdering::default().into(),
+            min_confirmations: None,
         }
     }
 
@@ -102,6 +104,25 @@ impl TxBuilder {
         self
     }
 
+    /// Exclude outpoints whose enclosing transaction has fewer than `min_confirms`
+    /// confirmations.
+    ///
+    /// - Passing `0` will include all transactions (no filtering).
+    /// - Passing `1` will exclude all unconfirmed transactions (equivalent to
+    ///   [`exclude_unconfirmed`]).
+    /// - Passing `6` will only allow outpoints from transactions with at least 6 confirmations.
+    pub fn exclude_below_confirmations(mut self, min_confirms: u32) -> Self {
+        self.min_confirmations = Some(min_confirms);
+        self
+    }
+
+    /// Exclude outpoints whose enclosing transaction is unconfirmed.
+    ///
+    /// This is a shorthand for [`exclude_below_confirmations(1)`](Self::exclude_below_confirmations).
+    pub fn exclude_unconfirmed(self) -> Self {
+        self.exclude_below_confirmations(1)
+    }
+
     /// Set whether or not the dust limit is checked.
     ///
     /// **Note**: by avoiding a dust limit check you may end up with a transaction that is non-standard.
@@ -129,6 +150,10 @@ impl TxBuilder {
             .unspendable(self.unspendable.into_iter().map(Into::into).collect())
             .fee_rate(self.fee_rate.into())
             .allow_dust(self.allow_dust);
+
+        if let Some(min_confirms) = self.min_confirmations {
+            builder.exclude_below_confirmations(min_confirms);
+        }
 
         if self.drain_wallet {
             builder.drain_wallet();

@@ -32,8 +32,8 @@ web-sys = { version = "0.3.77", default-features = false, features = [
 getrandom = { version = "0.2.16", features = ["js"] }
 
 # Bitcoin dependencies
-bdk_wallet = { version = "2.0.0" }
-bdk_esplora = { version = "0.22.0", default-features = false, features = [
+bdk_wallet = { version = "2.3.0" }
+bdk_esplora = { version = "0.22.1", default-features = false, features = [
     "async-https",
 ], optional = true }
 bitcoin = { version = "0.32.6", default-features = false, features = [

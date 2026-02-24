@@ -1,6 +1,8 @@
 use std::{cell::RefCell, rc::Rc};
 
-use bdk_wallet::{SignOptions as BdkSignOptions, Wallet as BdkWallet};
+#[allow(deprecated)]
+use bdk_wallet::SignOptions as BdkSignOptions;
+use bdk_wallet::Wallet as BdkWallet;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 use web_sys::js_sys::Date;
 
@@ -27,6 +29,22 @@ pub struct Wallet(Rc<RefCell<BdkWallet>>);
 impl Wallet {
     pub fn create(network: Network, external_descriptor: String, internal_descriptor: String) -> JsResult<Wallet> {
         let wallet = BdkWallet::create(external_descriptor, internal_descriptor)
+            .network(network.into())
+            .create_wallet_no_persist()?;
+
+        Ok(Wallet(Rc::new(RefCell::new(wallet))))
+    }
+
+    /// Create a new [`Wallet`] from a BIP-389 two-path multipath descriptor.
+    ///
+    /// The descriptor must contain exactly two derivation paths (receive and change),
+    /// separated by a semicolon in angle brackets, e.g.:
+    /// `wpkh([fingerprint/path]xpub.../<0;1>/*)`
+    ///
+    /// The first path is used for the external (receive) keychain and the second
+    /// for the internal (change) keychain.
+    pub fn create_from_two_path_descriptor(network: Network, descriptor: String) -> JsResult<Wallet> {
+        let wallet = BdkWallet::create_from_two_path_descriptor(descriptor)
             .network(network.into())
             .create_wallet_no_persist()?;
 
@@ -201,9 +219,16 @@ impl Wallet {
     }
 }
 
+/// Options for signing a PSBT.
+///
+/// Note: `bdk_wallet::SignOptions` is deprecated upstream (BDK 2.2.0) in favor of
+/// `bitcoin::psbt::Psbt::sign()`. However, `Wallet::sign` still requires `SignOptions`
+/// internally, so we continue wrapping it until BDK provides a migration path.
+#[allow(deprecated)]
 #[wasm_bindgen]
 pub struct SignOptions(BdkSignOptions);
 
+#[allow(deprecated)]
 #[wasm_bindgen]
 impl SignOptions {
     #[wasm_bindgen(constructor)]
@@ -272,12 +297,14 @@ impl SignOptions {
     }
 }
 
+#[allow(deprecated)]
 impl From<SignOptions> for BdkSignOptions {
     fn from(options: SignOptions) -> Self {
         options.0
     }
 }
 
+#[allow(deprecated)]
 impl Default for SignOptions {
     fn default() -> Self {
         Self::new()
