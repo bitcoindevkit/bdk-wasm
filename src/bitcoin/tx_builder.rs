@@ -102,6 +102,38 @@ impl TxBuilder {
         self
     }
 
+    /// Exclude outpoints whose enclosing transaction has fewer than `min_confirms`
+    /// confirmations.
+    ///
+    /// - Passing `0` will include all transactions (no filtering).
+    /// - Passing `1` will exclude all unconfirmed transactions (equivalent to
+    ///   [`exclude_unconfirmed`]).
+    /// - Passing `6` will only allow outpoints from transactions with at least 6 confirmations.
+    pub fn exclude_below_confirmations(mut self, min_confirms: u32) -> Self {
+        let wallet = self.wallet.borrow();
+        let tip_height = wallet.latest_checkpoint().height();
+        let to_exclude: Vec<OutPoint> = wallet
+            .list_unspent()
+            .filter(|utxo| {
+                utxo.chain_position
+                    .confirmation_height_upper_bound()
+                    .map_or(0, |h| tip_height.saturating_add(1).saturating_sub(h))
+                    < min_confirms
+            })
+            .map(|utxo| utxo.outpoint.into())
+            .collect();
+        drop(wallet);
+        self.unspendable.extend(to_exclude);
+        self
+    }
+
+    /// Exclude outpoints whose enclosing transaction is unconfirmed.
+    ///
+    /// This is a shorthand for [`exclude_below_confirmations(1)`](Self::exclude_below_confirmations).
+    pub fn exclude_unconfirmed(self) -> Self {
+        self.exclude_below_confirmations(1)
+    }
+
     /// Set whether or not the dust limit is checked.
     ///
     /// **Note**: by avoiding a dust limit check you may end up with a transaction that is non-standard.
