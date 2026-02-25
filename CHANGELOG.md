@@ -1,8 +1,54 @@
 # Changelog
 
-All notable changes to this project can be found here and in each release's git tag and can be viewed with `git tag -ln100 "v*"`. See also [DEVELOPMENT_CYCLE.md](DEVELOPMENT_CYCLE.md) for more details.
+All notable changes to this project will be documented in this file.
 
-Contributors do not need to change this file but do need to add changelog details in their PR descriptions. The person making the next release will collect changelog details from included PRs and edit this file prior to each release.
-
-The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
+The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.1.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
+
+## [Unreleased]
+
+### Added
+
+- Upgrade BDK to 2.3.0 with new API wrappers ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14)):
+  - `Wallet::create_from_two_path_descriptor` (BIP-389 multipath descriptors)
+  - `TxBuilder::exclude_unconfirmed` and `TxBuilder::exclude_below_confirmations`
+- Dust check methods on `Amount` and `Script` ([#13](https://github.com/bitcoindevkit/bdk-wasm/pull/13))
+- Regtest integration test environment with Docker Compose and Esplora ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
+- `CLAUDE.md` with agent instructions and project conventions ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14))
+
+### Changed
+
+- `esplora.test.ts` is now network-agnostic via `NETWORK` and `ESPLORA_URL` environment variables ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
+- Node CI job excludes Esplora tests; dedicated Esplora integration job runs against regtest ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
+
+### Fixed
+
+- Suppress deprecated `SignOptions` warnings with `#[allow(deprecated)]` ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14))
+
+### Dependencies
+
+- `bdk_wallet` 2.0.0 → 2.3.0
+- `bdk_esplora` 0.22.0 → 0.22.1
+
+## [0.2.0] - 2025-08-25
+
+Initial release under the [bitcoindevkit](https://github.com/bitcoindevkit) organization. Repository transferred from MetaMask.
+
+### Added
+
+- WASM bindings for `bdk_wallet` 2.0.0 via `wasm-bindgen`
+- Core wallet functionality: `Wallet` (create, load, sign, addresses, UTXOs, transactions)
+- `TxBuilder` for constructing transactions
+- `EsploraClient` for blockchain sync (full scan and incremental sync)
+- `Descriptor` utilities
+- WASM-compatible type wrappers with `From`/`Into` conversions for all BDK/bitcoin types
+- `Clone` and `Copy` trait implementations for applicable types
+- Browser and Node.js build targets
+- Node.js integration tests (Jest) against Mutinynet signet
+- Browser tests via `wasm-pack test`
+- CI with GitHub Actions: lint (fmt + clippy), browser builds, Node.js build + test
+- CODEOWNERS file
+- Automated npm publishing for `@bitcoindevkit/bdk-wallet-web` and `@bitcoindevkit/bdk-wallet-node`
+
+[Unreleased]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.2.0...HEAD
+[0.2.0]: https://github.com/bitcoindevkit/bdk-wasm/releases/tag/v0.2.0
