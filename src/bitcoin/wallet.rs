@@ -12,7 +12,7 @@ use crate::{
     types::{
         AddressInfo, Amount, Balance, ChangeSet, CheckPoint, FeeRate, FullScanRequest, KeychainKind, LocalOutput,
         Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, Txid,
-        Update,
+        Update, WalletEvent,
     },
 };
 
@@ -95,6 +95,14 @@ impl Wallet {
     pub fn apply_update(&self, update: Update) -> JsResult<()> {
         self.0.borrow_mut().apply_update(update)?;
         Ok(())
+    }
+
+    /// Apply an update and return wallet events describing what changed.
+    ///
+    /// Returns a list of `WalletEvent`s such as new transactions, confirmations, replacements, etc.
+    pub fn apply_update_events(&self, update: Update) -> JsResult<Vec<WalletEvent>> {
+        let events = self.0.borrow_mut().apply_update_events(update)?;
+        Ok(events.into_iter().map(WalletEvent::from).collect())
     }
 
     #[wasm_bindgen(getter)]
