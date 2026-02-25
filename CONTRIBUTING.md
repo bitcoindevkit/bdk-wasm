@@ -70,6 +70,22 @@ debt inside this library.
 If you deprecated an API as part of a contribution, we encourage you to "own" that API
 and send a follow-up to remove it as part of the next release cycle.
 
+## Changelog
+
+This project maintains a [CHANGELOG.md](CHANGELOG.md) following the [Keep a Changelog](https://keepachangelog.com/) format.
+
+When submitting a PR, include a brief description of your changes in the PR body using one of these categories:
+
+- **Added** — new features or APIs
+- **Changed** — changes to existing functionality
+- **Deprecated** — features that will be removed in a future release
+- **Removed** — features that have been removed
+- **Fixed** — bug fixes
+- **Security** — vulnerability fixes
+- **Dependencies** — dependency version changes
+
+The maintainer will add the entry to `CHANGELOG.md` when merging. For release PRs, all entries in the `[Unreleased]` section are moved under the new version heading.
+
 ## Peer review
 
 Anyone may participate in peer review which is expressed by comments in the
