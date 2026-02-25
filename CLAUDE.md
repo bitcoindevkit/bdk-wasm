@@ -73,19 +73,24 @@ yarn lint           # runs eslint
 
 Node tests are in `tests/node/integration/`:
 - `wallet.test.ts` — Wallet creation, addresses, descriptors
-- `esplora.test.ts` — Esplora sync, full scan, transaction sending (uses **Mutinynet signet**)
+- `esplora.test.ts` — Esplora sync, full scan, transaction sending (network-agnostic)
 - `utilities.test.ts` — Amount, Script, Address utilities
 - `errors.test.ts` — Error handling and error codes
 
-**Note:** `esplora.test.ts` depends on Mutinynet signet (`https://mutinynet.com/api`) with a
-pre-funded test wallet. This test can be flaky if the faucet/signet is down.
+`esplora.test.ts` is parameterized via environment variables:
+- `NETWORK` — `signet` (default) or `regtest`
+- `ESPLORA_URL` — defaults to `https://mutinynet.com/api`
 
 ### CI
 
 GitHub Actions runs on every PR:
 - **Lint:** `cargo fmt --check` + `cargo clippy --all-features --all-targets -- -D warnings`
 - **Browser build:** Three matrix configs (all features, debug+default, debug+esplora)
-- **Node build + test:** Full wasm-pack build + Jest test suite
+- **Node build + test:** Unit tests only (Esplora tests excluded)
+- **Esplora integration tests:** Regtest environment via Docker Compose (`blockstream/esplora`)
+
+On push to main only:
+- **Signet smoke test:** Runs `esplora.test.ts` against Mutinynet signet as a live network check
 
 CI must be green before merging. Clippy treats warnings as errors (`-D warnings`).
 
