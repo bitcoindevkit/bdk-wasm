@@ -8,7 +8,7 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = ["Bitcoin Developers"]
 edition = "2021"
-rust-version = "1.73"
+rust-version = "1.83"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -19,24 +19,24 @@ esplora = ["bdk_esplora", "wasm-bindgen-futures"]
 debug = ["console_error_panic_hook"]
 
 [dependencies]
-wasm-bindgen = "0.2.100"
-wasm-bindgen-futures = { version = "0.4.50", optional = true }
-anyhow = { version = "1.0.98", default-features = false }
-serde = { version = "1.0.219", default-features = false, features = ["derive"] }
+wasm-bindgen = "0.2.113"
+wasm-bindgen-futures = { version = "0.4.63", optional = true }
+anyhow = { version = "1.0.102", default-features = false }
+serde = { version = "1.0.228", default-features = false, features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
-web-sys = { version = "0.3.77", default-features = false, features = [
+web-sys = { version = "0.3.90", default-features = false, features = [
     "Window",
 ] }
 
 # Compatibility to compile to WASM
-getrandom = { version = "0.2.16", features = ["js"] }
+getrandom = { version = "0.2.17", features = ["js"] }
 
 # Bitcoin dependencies
 bdk_wallet = { version = "2.3.0" }
 bdk_esplora = { version = "0.22.1", default-features = false, features = [
     "async-https",
 ], optional = true }
-bitcoin = { version = "0.32.6", default-features = false, features = [
+bitcoin = { version = "0.32.8", default-features = false, features = [
     "secp-lowmemory",
 ] }
 
@@ -44,7 +44,7 @@ bitcoin = { version = "0.32.6", default-features = false, features = [
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.50"
+wasm-bindgen-test = "0.3.63"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

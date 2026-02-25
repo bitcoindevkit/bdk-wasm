@@ -29,6 +29,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `bdk_wallet` 2.0.0 → 2.3.0
 - `bdk_esplora` 0.22.0 → 0.22.1
+- `wasm-bindgen` 0.2.100 → 0.2.113
+- `bitcoin` 0.32.6 → 0.32.8
+- `anyhow` 1.0.98 → 1.0.102
+- `serde` 1.0.219 → 1.0.228
+- `web-sys` 0.3.77 → 0.3.90
+- `getrandom` 0.2.16 → 0.2.17
+- `wasm-bindgen-test` 0.3.50 → 0.3.63
+- CI: `actions/checkout` v4.3.1, `actions/setup-node` v4.4.0, `dtolnay/rust-toolchain` v1, `Swatinem/rust-cache` v2.8.2, `actionlint` 1.7.11
+- All CI actions pinned to SHA with version comments
 
 ## [0.2.0] - 2025-08-25
 

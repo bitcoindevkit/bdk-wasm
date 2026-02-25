@@ -17,15 +17,15 @@ jobs:
           - debug,esplora
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
           toolchain: ${{ matrix.rust }}
       - name: Install wasm-pack
         run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
       - name: Rust Cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
       - name: Build
         run: |
           if [ "${{ matrix.features }}" = "all" ]; then
@@ -41,13 +41,13 @@ jobs:
     name: Build, Lint and test - Node
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
         run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.x
           cache: yarn
@@ -66,15 +66,15 @@ jobs:
     name: Esplora integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
         run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
       - name: Rust Cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.x
           cache: yarn
@@ -116,15 +116,15 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
         run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
       - name: Rust Cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
       - name: Setup Node
-        uses: actions/setup-node@v4
+        uses: actions/setup-node@49933ea5288caeca8642d1e84afbd3f7d6820020 # v4.4.0
         with:
           node-version: 22.x
           cache: yarn
@@ -144,13 +144,14 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@34e114876b0b11c390a56381ad16ebd13914f8d5 # v4.3.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@4f647fc679bcd3b11499ccb42104547c83dabe96
+        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
         with:
+          toolchain: stable
           components: rustfmt, clippy
       - name: Rust Cache
-        uses: Swatinem/rust-cache@f0deed1e0edfc6a9be95417288c0e1099b1eeec3
+        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
       - name: Check formatting
         run: cargo fmt --all -- --config format_code_in_doc_comments=true --check
       - name: Run Clippy
