@@ -12,7 +12,8 @@ import {
 } from "../../../pkg/bitcoindevkit";
 
 const network: Network = (process.env.NETWORK as Network) || "regtest";
-const esploraUrl = process.env.ESPLORA_URL || "http://localhost:8094/regtest/api";
+const esploraUrl =
+  process.env.ESPLORA_URL || "http://localhost:8094/regtest/api";
 
 // Skip unless running against regtest (needs docker for mining)
 const describeRegtest = network === "regtest" ? describe : describe.skip;
@@ -22,11 +23,19 @@ const externalDescriptor =
 const internalDescriptor =
   "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/1/*)#rxa3ep74";
 
+// WalletEventKind is a string literal union in TS, so use string constants
+const EventKind = {
+  ChainTipChanged: "chain_tip_changed" as WalletEventKind,
+  TxConfirmed: "tx_confirmed" as WalletEventKind,
+  TxUnconfirmed: "tx_unconfirmed" as WalletEventKind,
+  TxReplaced: "tx_replaced" as WalletEventKind,
+  TxDropped: "tx_dropped" as WalletEventKind,
+};
+
 /**
  * Mine blocks on the regtest node via docker exec.
- * Returns the miner address used.
  */
-function mineBlocks(count: number): string {
+function mineBlocks(count: number): void {
   const address = execSync(
     `docker exec esplora-regtest cli -regtest getnewaddress`,
     { encoding: "utf-8" }
@@ -35,7 +44,6 @@ function mineBlocks(count: number): string {
     `docker exec esplora-regtest cli -regtest generatetoaddress ${count} ${address}`,
     { encoding: "utf-8" }
   );
-  return address;
 }
 
 /**
@@ -78,7 +86,7 @@ describeRegtest("Wallet events (regtest)", () => {
 
     // Should have at least a ChainTipChanged event (wallet goes from genesis to tip)
     const chainTipEvents = events.filter(
-      (e) => e.kind === WalletEventKind.ChainTipChanged
+      (e) => e.kind === EventKind.ChainTipChanged
     );
     expect(chainTipEvents.length).toBeGreaterThanOrEqual(1);
 
@@ -91,7 +99,7 @@ describeRegtest("Wallet events (regtest)", () => {
 
     // Should have TxConfirmed for the pre-funded transaction
     const confirmedEvents = events.filter(
-      (e) => e.kind === WalletEventKind.TxConfirmed
+      (e) => e.kind === EventKind.TxConfirmed
     );
     expect(confirmedEvents.length).toBeGreaterThanOrEqual(1);
 
@@ -100,7 +108,7 @@ describeRegtest("Wallet events (regtest)", () => {
       expect(event.txid).toBeDefined();
       expect(event.tx).toBeDefined();
       expect(event.block_time).toBeDefined();
-      expect(event.block_time!.height).toBeGreaterThan(0);
+      expect(event.block_time!.block_id.height).toBeGreaterThan(0);
     }
 
     // Wallet should have balance after applying events
@@ -142,24 +150,24 @@ describeRegtest("Wallet events (regtest)", () => {
 
     // Should have a ChainTipChanged event
     const chainTipEvents = events.filter(
-      (e) => e.kind === WalletEventKind.ChainTipChanged
+      (e) => e.kind === EventKind.ChainTipChanged
     );
     expect(chainTipEvents.length).toBeGreaterThanOrEqual(1);
 
     // Should have a TxConfirmed event for our transaction
     const confirmedEvents = events.filter(
-      (e) => e.kind === WalletEventKind.TxConfirmed
+      (e) => e.kind === EventKind.TxConfirmed
     );
     const ourTxEvent = confirmedEvents.find(
       (e) => e.txid?.toString() === txid.toString()
     );
     expect(ourTxEvent).toBeDefined();
     expect(ourTxEvent!.block_time).toBeDefined();
-    expect(ourTxEvent!.block_time!.height).toBeGreaterThan(tipBefore);
+    expect(ourTxEvent!.block_time!.block_id.height).toBeGreaterThan(tipBefore);
     expect(ourTxEvent!.tx).toBeDefined();
   }, 30000);
 
-  it("event kind returns WalletEventKind enum values", async () => {
+  it("event kind returns valid string enum values", async () => {
     // Mine a block and sync to get fresh events
     mineBlocks(1);
     const tip = wallet.latest_checkpoint.height;
@@ -169,13 +177,13 @@ describeRegtest("Wallet events (regtest)", () => {
     const update = await esploraClient.sync(syncRequest, 1);
     const events: WalletEvent[] = wallet.apply_update_events(update);
 
-    // All events should have a valid WalletEventKind
-    const validKinds = new Set([
-      WalletEventKind.ChainTipChanged,
-      WalletEventKind.TxConfirmed,
-      WalletEventKind.TxUnconfirmed,
-      WalletEventKind.TxReplaced,
-      WalletEventKind.TxDropped,
+    // All events should have a valid WalletEventKind string
+    const validKinds = new Set<string>([
+      "chain_tip_changed",
+      "tx_confirmed",
+      "tx_unconfirmed",
+      "tx_replaced",
+      "tx_dropped",
     ]);
 
     for (const event of events) {
@@ -183,9 +191,9 @@ describeRegtest("Wallet events (regtest)", () => {
     }
 
     // Should at least get a chain tip changed event from the mined block
-    expect(events.some((e) => e.kind === WalletEventKind.ChainTipChanged)).toBe(
-      true
-    );
+    expect(
+      events.some((e) => e.kind === EventKind.ChainTipChanged)
+    ).toBe(true);
   }, 30000);
 
   it("returns no tx events when nothing changed", async () => {
@@ -197,10 +205,10 @@ describeRegtest("Wallet events (regtest)", () => {
     // No new tx events expected (wallet is already up to date)
     const txEvents = events.filter(
       (e) =>
-        e.kind === WalletEventKind.TxConfirmed ||
-        e.kind === WalletEventKind.TxUnconfirmed ||
-        e.kind === WalletEventKind.TxReplaced ||
-        e.kind === WalletEventKind.TxDropped
+        e.kind === EventKind.TxConfirmed ||
+        e.kind === EventKind.TxUnconfirmed ||
+        e.kind === EventKind.TxReplaced ||
+        e.kind === EventKind.TxDropped
     );
     expect(txEvents.length).toBe(0);
   }, 30000);

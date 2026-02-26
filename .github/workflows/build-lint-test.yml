@@ -60,7 +60,7 @@ jobs:
         run: yarn lint
       - name: Test
         working-directory: tests/node
-        run: yarn build && yarn jest --testPathIgnorePatterns='integration/esplora'
+        run: yarn build && yarn jest --testPathIgnorePatterns='integration/(esplora|events)'
 
   esplora-integration:
     name: Esplora integration tests
