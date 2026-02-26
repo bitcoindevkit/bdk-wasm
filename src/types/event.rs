@@ -63,9 +63,7 @@ impl WalletEvent {
             BdkWalletEvent::TxConfirmed { tx, .. }
             | BdkWalletEvent::TxUnconfirmed { tx, .. }
             | BdkWalletEvent::TxReplaced { tx, .. }
-            | BdkWalletEvent::TxDropped { tx, .. } => {
-                Some(tx.as_ref().clone().into())
-            }
+            | BdkWalletEvent::TxDropped { tx, .. } => Some(tx.as_ref().clone().into()),
             _ => None,
         }
     }
