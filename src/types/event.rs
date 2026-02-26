@@ -1,7 +1,23 @@
-use bdk_wallet::wallet::event::WalletEvent as BdkWalletEvent;
+use bdk_wallet::event::WalletEvent as BdkWalletEvent;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::{BlockId, ConfirmationBlockTime, Transaction, Txid};
+
+/// The kind of wallet event.
+#[wasm_bindgen]
+#[derive(Clone, Copy, PartialEq, Eq)]
+pub enum WalletEventKind {
+    /// The chain tip changed.
+    ChainTipChanged = "chain_tip_changed",
+    /// A transaction was confirmed.
+    TxConfirmed = "tx_confirmed",
+    /// A transaction was unconfirmed (reorg).
+    TxUnconfirmed = "tx_unconfirmed",
+    /// A transaction was replaced.
+    TxReplaced = "tx_replaced",
+    /// A transaction was dropped.
+    TxDropped = "tx_dropped",
+}
 
 /// An event representing a change to the wallet state.
 ///
@@ -12,17 +28,15 @@ pub struct WalletEvent(BdkWalletEvent);
 #[wasm_bindgen]
 impl WalletEvent {
     /// The kind of event.
-    ///
-    /// One of: `"chain_tip_changed"`, `"tx_confirmed"`, `"tx_unconfirmed"`, `"tx_replaced"`, `"tx_dropped"`.
     #[wasm_bindgen(getter)]
-    pub fn kind(&self) -> String {
+    pub fn kind(&self) -> WalletEventKind {
         match &self.0 {
-            BdkWalletEvent::ChainTipChanged { .. } => "chain_tip_changed".to_string(),
-            BdkWalletEvent::TxConfirmed { .. } => "tx_confirmed".to_string(),
-            BdkWalletEvent::TxUnconfirmed { .. } => "tx_unconfirmed".to_string(),
-            BdkWalletEvent::TxReplaced { .. } => "tx_replaced".to_string(),
-            BdkWalletEvent::TxDropped { .. } => "tx_dropped".to_string(),
-            _ => "unknown".to_string(),
+            BdkWalletEvent::ChainTipChanged { .. } => WalletEventKind::ChainTipChanged,
+            BdkWalletEvent::TxConfirmed { .. } => WalletEventKind::TxConfirmed,
+            BdkWalletEvent::TxUnconfirmed { .. } => WalletEventKind::TxUnconfirmed,
+            BdkWalletEvent::TxReplaced { .. } => WalletEventKind::TxReplaced,
+            BdkWalletEvent::TxDropped { .. } => WalletEventKind::TxDropped,
+            _ => WalletEventKind::ChainTipChanged, // non_exhaustive fallback
         }
     }
 
@@ -96,7 +110,7 @@ impl WalletEvent {
             | BdkWalletEvent::TxUnconfirmed {
                 old_block_time: Some(bt),
                 ..
-            } => Some(bt.into()),
+            } => Some(ConfirmationBlockTime::from(bt)),
             _ => None,
         }
     }
