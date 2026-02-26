@@ -106,7 +106,7 @@ jobs:
         run: sleep 10
       - name: Run Esplora integration tests
         working-directory: tests/node
-        run: NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --testPathPattern='integration/esplora'
+        run: NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --testPathPattern='integration/(esplora|events)'
       - name: Stop Esplora
         if: always()
         run: docker compose -f tests/docker-compose.yml down
