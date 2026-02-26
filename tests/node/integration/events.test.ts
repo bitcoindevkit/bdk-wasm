@@ -18,10 +18,11 @@ const esploraUrl =
 // Skip unless running against regtest (needs docker for mining)
 const describeRegtest = network === "regtest" ? describe : describe.skip;
 
+// Use a separate descriptor from esplora.test.ts to avoid UTXO conflicts when running in parallel
 const externalDescriptor =
-  "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/0/*)#jjcsy5wd";
+  "wpkh(tprv8ZgxMBicQKsPe2qpAuh1K1Hig72LCoP4JgNxZM2ZRWHZYnpuw5oHoGBsQm7Qb8mLgPpRJVn3hceWgGQRNbPD6x1pp2Qme2YFRAPeYh7vmvE/84'/1'/0'/0/*)#a6kgzlgq";
 const internalDescriptor =
-  "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/1/*)#rxa3ep74";
+  "wpkh(tprv8ZgxMBicQKsPe2qpAuh1K1Hig72LCoP4JgNxZM2ZRWHZYnpuw5oHoGBsQm7Qb8mLgPpRJVn3hceWgGQRNbPD6x1pp2Qme2YFRAPeYh7vmvE/84'/1'/0'/1/*)#vwnfl2cc";
 
 // WalletEventKind is a string literal union in TS, so use string constants
 const EventKind = {
@@ -74,8 +75,21 @@ describeRegtest("Wallet events (regtest)", () => {
   const esploraClient = new EsploraClient(esploraUrl, 0);
   let wallet: Wallet;
 
-  beforeAll(() => {
+  beforeAll(async () => {
     wallet = Wallet.create(network, externalDescriptor, internalDescriptor);
+
+    // Fund this wallet via regtest faucet (separate from esplora test wallet)
+    const address = wallet.peek_address("external", 0).address.toString();
+    execSync(
+      `docker exec esplora-regtest cli -regtest -rpcwallet=default sendtoaddress ${address} 1.0`,
+      { encoding: "utf-8" }
+    );
+    // Mine to confirm the funding tx
+    mineBlocks(1);
+    // Wait for Esplora to index
+    const res = await fetch(`${esploraUrl}/blocks/tip/height`);
+    const currentHeight = parseInt(await res.text(), 10);
+    await waitForEsploraHeight(currentHeight);
   });
 
   it("returns events on initial full scan", async () => {
