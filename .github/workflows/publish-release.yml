@@ -20,7 +20,7 @@ jobs:
         with:
           toolchain: stable
       - name: Install wasm-pack
-        run: curl https://raw.githubusercontent.com/rustwasm/wasm-pack/a3a48401795cd4b3afe1d74568c93675a04f3970/installer/init.sh -sSf | sh -s -- -f
+        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
       - name: Rust Cache
