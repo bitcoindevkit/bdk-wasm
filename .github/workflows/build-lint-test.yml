@@ -106,7 +106,7 @@ jobs:
         run: sleep 10
       - name: Run Esplora integration tests
         working-directory: tests/node
-        run: NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --runInBand --testPathPattern='integration/(esplora|events)'
+        run: NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --runInBand --testPathPatterns='integration/(esplora|events)'
       - name: Stop Esplora
         if: always()
         run: docker compose -f tests/docker-compose.yml down
@@ -137,7 +137,7 @@ jobs:
         run: yarn build
       - name: Run Mutinynet signet tests
         working-directory: tests/node
-        run: yarn jest --testPathPattern='integration/esplora'
+        run: yarn jest --testPathPatterns='integration/esplora'
 
   lint:
     name: Lint (fmt + clippy)
