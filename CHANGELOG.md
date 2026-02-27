@@ -9,6 +9,20 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Expand TxBuilder API ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
+  - `fee_absolute` for setting absolute fee amounts
+  - `add_utxo` and `add_utxos` for must-spend UTXOs
+  - `only_spend_from` to restrict to manually added UTXOs
+  - `enable_rbf` and `enable_rbf_with_sequence` for BIP 125 signaling
+  - `nlocktime` for setting absolute locktime
+  - `version` for setting transaction version
+  - `change_policy` and `do_not_spend_change` for controlling change output usage
+  - `ChangeSpendPolicy` enum (`ChangeAllowed`, `OnlyChange`, `ChangeForbidden`)
+- `Wallet::build_fee_bump` for creating RBF fee-bump transactions ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
+- `Wallet::create_single` for single-descriptor wallets ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
+- `Wallet::mark_used` and `Wallet::unmark_used` for address usage management ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
+- `Wallet::insert_txout` for providing external TxOut values for fee calculation ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
+- `BuildFeeBumpError` variants: `TransactionNotFound`, `TransactionConfirmed`, `IrreplaceableTransaction`, `FeeRateUnavailable`, `InvalidOutputIndex`
 - `WalletEvent` type and `Wallet::apply_update_events` for reacting to wallet state changes ([#19](https://github.com/bitcoindevkit/bdk-wasm/issues/19))
 - Upgrade BDK to 2.3.0 with new API wrappers ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14)):
   - `Wallet::create_from_two_path_descriptor` (BIP-389 multipath descriptors)

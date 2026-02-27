@@ -86,6 +86,19 @@ pub enum BdkErrorCode {
     /// Miniscript PSBT error
     MiniscriptPsbt,
 
+    /// ------- Fee bump errors -------
+
+    /// Transaction not found in the internal database
+    TransactionNotFound,
+    /// Transaction is already confirmed, cannot fee-bump
+    TransactionConfirmed,
+    /// Transaction does not signal RBF (sequence >= 0xFFFFFFFE)
+    IrreplaceableTransaction,
+    /// Fee rate data is unavailable
+    FeeRateUnavailable,
+    /// Input references an invalid output index
+    InvalidOutputIndex,
+
     /// ------- Address errors -------
 
     /// Base58 error.
