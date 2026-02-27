@@ -38,8 +38,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `web-sys` 0.3.77 → 0.3.90
 - `getrandom` 0.2.16 → 0.2.17
 - `wasm-bindgen-test` 0.3.50 → 0.3.63
-- CI: `actions/checkout` v4.3.1, `actions/setup-node` v4.4.0, `dtolnay/rust-toolchain` v1, `Swatinem/rust-cache` v2.8.2, `actionlint` 1.7.11
-- All CI actions pinned to SHA with version comments
+- CI: `actions/checkout` v4.3.1 → v6.0.2, `actions/setup-node` v4.4.0 → v6.2.0, `actions/cache` v4 → v5.0.3
+- CI: `dtolnay/rust-toolchain` v1, `Swatinem/rust-cache` v2.8.2 (unchanged), `actionlint` 1.7.11
+- All CI actions SHA-pinned with version comments (including `publish-release.yml`)
+- Node tests: `jest` 29 → 30, `@types/jest` 29 → 30, `eslint` 9 → 10, `eslint-plugin-jest` 28 → 29, `globals` 16 → 17
 
 ## [0.2.0] - 2025-08-25
 
