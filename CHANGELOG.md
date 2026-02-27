@@ -9,6 +9,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- `WalletEvent` type and `Wallet::apply_update_events` for reacting to wallet state changes ([#19](https://github.com/bitcoindevkit/bdk-wasm/issues/19))
 - Upgrade BDK to 2.3.0 with new API wrappers ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14)):
   - `Wallet::create_from_two_path_descriptor` (BIP-389 multipath descriptors)
   - `TxBuilder::exclude_unconfirmed` and `TxBuilder::exclude_below_confirmations`
