@@ -14,4 +14,4 @@ tmp/
 .DS_Store
 
 .env
-.env.*.local
+.env.*.localPROJECT.md

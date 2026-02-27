@@ -19,6 +19,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Upgrade wasm-pack from 0.13.1 to 0.14.0 in CI ([#31](https://github.com/bitcoindevkit/bdk-wasm/issues/31)). Install method changed from deprecated `installer/init.sh` script to direct binary download from GitHub releases
 - `esplora.test.ts` is now network-agnostic via `NETWORK` and `ESPLORA_URL` environment variables ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
 - Node CI job excludes Esplora tests; dedicated Esplora integration job runs against regtest ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
 
