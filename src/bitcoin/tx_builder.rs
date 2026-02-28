@@ -1,7 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use bdk_wallet::{
-    error::{BuildFeeBumpError, CreateTxError},
+    error::{AddUtxoError, BuildFeeBumpError, CreateTxError},
     ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering, Wallet as BdkWallet,
 };
 use serde::Serialize;
@@ -36,8 +36,6 @@ pub struct TxBuilder {
     min_confirmations: Option<u32>,
     change_policy: Option<ChangeSpendPolicy>,
     only_spend_from: bool,
-    enable_rbf: bool,
-    rbf_sequence: Option<u32>,
     nlocktime: Option<u32>,
     version: Option<i32>,
     is_fee_bump: bool,
@@ -61,8 +59,6 @@ impl TxBuilder {
             min_confirmations: None,
             change_policy: None,
             only_spend_from: false,
-            enable_rbf: false,
-            rbf_sequence: None,
             nlocktime: None,
             version: None,
             is_fee_bump: false,
@@ -226,20 +222,20 @@ impl TxBuilder {
 
     /// Enable Replace-By-Fee (BIP 125) signaling.
     ///
-    /// This will use the default nSequence value of `0xFFFFFFFD`.
-    pub fn enable_rbf(mut self) -> Self {
-        self.enable_rbf = true;
-        self.rbf_sequence = None;
+    /// **Note:** RBF is enabled by default in BDK 2.x (nSequence = `0xFFFFFFFD`).
+    /// This method is kept for API compatibility but is effectively a no-op.
+    pub fn enable_rbf(self) -> Self {
+        // RBF is enabled by default in BDK 2.x
         self
     }
 
     /// Enable Replace-By-Fee (BIP 125) with a specific nSequence value.
     ///
-    /// This can be used to set an exact nSequence value. Note that the value must
-    /// signal RBF (i.e., less than `0xFFFFFFFE`).
-    pub fn enable_rbf_with_sequence(mut self, nsequence: u32) -> Self {
-        self.enable_rbf = false;
-        self.rbf_sequence = Some(nsequence);
+    /// **Note:** RBF is enabled by default in BDK 2.x. Custom nSequence values
+    /// are not currently supported through this builder. This method is kept for
+    /// API compatibility but is effectively a no-op.
+    pub fn enable_rbf_with_sequence(self, _nsequence: u32) -> Self {
+        // RBF is enabled by default in BDK 2.x; custom sequence not supported
         self
     }
 
@@ -284,13 +280,8 @@ impl TxBuilder {
                 .ordering(self.ordering.into())
                 .allow_dust(self.allow_dust);
 
-            if self.enable_rbf {
-                builder.enable_rbf();
-            }
-
-            if let Some(seq) = self.rbf_sequence {
-                builder.enable_rbf_with_sequence(bdk_wallet::bitcoin::Sequence(seq));
-            }
+            // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
+            // No explicit enable_rbf call needed.
 
             let psbt = builder.finish()?;
             return Ok(psbt.into());
@@ -319,7 +310,7 @@ impl TxBuilder {
         }
 
         if self.only_spend_from {
-            builder.only_spend_from();
+            builder.manually_selected_only();
         }
 
         if let Some(min_confirms) = self.min_confirmations {
@@ -338,13 +329,8 @@ impl TxBuilder {
             builder.drain_to(drain_recipient.into());
         }
 
-        if self.enable_rbf {
-            builder.enable_rbf();
-        }
-
-        if let Some(seq) = self.rbf_sequence {
-            builder.enable_rbf_with_sequence(bdk_wallet::bitcoin::Sequence(seq));
-        }
+        // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
+        // No explicit enable_rbf call needed.
 
         if let Some(locktime) = self.nlocktime {
             builder.nlocktime(bdk_wallet::bitcoin::absolute::LockTime::from_consensus(locktime));
@@ -419,6 +405,12 @@ pub struct InsufficientFunds {
     pub needed: Amount,
     /// Amount available for spending
     pub available: Amount,
+}
+
+impl From<AddUtxoError> for BdkError {
+    fn from(e: AddUtxoError) -> Self {
+        BdkError::new(BdkErrorCode::UnknownUtxo, e.to_string(), ())
+    }
 }
 
 impl From<BuildFeeBumpError> for BdkError {
