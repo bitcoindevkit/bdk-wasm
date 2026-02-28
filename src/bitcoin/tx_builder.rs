@@ -1,8 +1,9 @@
 use std::{cell::RefCell, rc::Rc};
 
 use bdk_wallet::{
-    error::{AddUtxoError, BuildFeeBumpError, CreateTxError},
-    ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering, Wallet as BdkWallet,
+    error::{BuildFeeBumpError, CreateTxError},
+    AddUtxoError, ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering,
+    Wallet as BdkWallet,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
