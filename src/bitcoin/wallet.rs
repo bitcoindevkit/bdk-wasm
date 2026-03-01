@@ -11,8 +11,8 @@ use crate::{
     result::JsResult,
     types::{
         AddressInfo, Amount, Balance, ChangeSet, CheckPoint, FeeRate, FullScanRequest, KeychainKind, LocalOutput,
-        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, Txid,
-        TxOut, Update, WalletEvent,
+        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, TxOut,
+        Txid, Update, WalletEvent,
     },
 };
 

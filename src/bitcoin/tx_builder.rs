@@ -2,8 +2,7 @@ use std::{cell::RefCell, rc::Rc};
 
 use bdk_wallet::{
     error::{BuildFeeBumpError, CreateTxError},
-    AddUtxoError, ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering,
-    Wallet as BdkWallet,
+    AddUtxoError, ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering, Wallet as BdkWallet,
 };
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
@@ -277,9 +276,7 @@ impl TxBuilder {
                 }
             }
 
-            builder
-                .ordering(self.ordering.into())
-                .allow_dust(self.allow_dust);
+            builder.ordering(self.ordering.into()).allow_dust(self.allow_dust);
 
             // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
             // No explicit enable_rbf call needed.
@@ -425,9 +422,7 @@ impl From<BuildFeeBumpError> for BdkError {
                 BdkError::new(BdkErrorCode::IrreplaceableTransaction, e.to_string(), txid)
             }
             FeeRateUnavailable => BdkError::new(BdkErrorCode::FeeRateUnavailable, e.to_string(), ()),
-            InvalidOutputIndex(outpoint) => {
-                BdkError::new(BdkErrorCode::InvalidOutputIndex, e.to_string(), outpoint)
-            }
+            InvalidOutputIndex(outpoint) => BdkError::new(BdkErrorCode::InvalidOutputIndex, e.to_string(), outpoint),
         }
     }
 }
