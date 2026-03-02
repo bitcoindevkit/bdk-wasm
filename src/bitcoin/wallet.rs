@@ -11,8 +11,8 @@ use crate::{
     result::JsResult,
     types::{
         AddressInfo, Amount, Balance, ChangeSet, CheckPoint, FeeRate, FullScanRequest, KeychainKind, LocalOutput,
-        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, Txid,
-        Update, WalletEvent,
+        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, TxOut,
+        Txid, Update, WalletEvent,
     },
 };
 
@@ -27,6 +27,18 @@ pub struct Wallet(Rc<RefCell<BdkWallet>>);
 
 #[wasm_bindgen]
 impl Wallet {
+    /// Create a new single-descriptor [`Wallet`].
+    ///
+    /// Use this when the wallet only needs one descriptor (no separate change keychain).
+    /// Note that `change_policy` and related methods won't be available on single-descriptor wallets.
+    pub fn create_single(network: Network, descriptor: String) -> JsResult<Wallet> {
+        let wallet = BdkWallet::create_single(descriptor)
+            .network(network.into())
+            .create_wallet_no_persist()?;
+
+        Ok(Wallet(Rc::new(RefCell::new(wallet))))
+    }
+
     pub fn create(network: Network, external_descriptor: String, internal_descriptor: String) -> JsResult<Wallet> {
         let wallet = BdkWallet::create(external_descriptor, internal_descriptor)
             .network(network.into())
@@ -192,6 +204,39 @@ impl Wallet {
 
     pub fn build_tx(&self) -> TxBuilder {
         TxBuilder::new(self.0.clone())
+    }
+
+    /// Create a new transaction builder for fee-bumping (RBF) an existing transaction.
+    ///
+    /// The `txid` must refer to a transaction that is already in the wallet and signals RBF.
+    /// Returns a `TxBuilder` pre-configured for fee bumping. You can then set the new fee rate
+    /// or absolute fee and call `finish()`.
+    pub fn build_fee_bump(&self, txid: Txid) -> JsResult<TxBuilder> {
+        Ok(TxBuilder::new_fee_bump(self.0.clone(), txid.into()))
+    }
+
+    /// Mark an address as used at the given keychain and derivation index.
+    ///
+    /// Returns whether the given index was present in the unused set and was removed.
+    pub fn mark_used(&self, keychain: KeychainKind, index: u32) -> bool {
+        self.0.borrow_mut().mark_used(keychain.into(), index)
+    }
+
+    /// Undo a previous `mark_used` call.
+    ///
+    /// Returns whether the index was inserted back into the unused set.
+    /// Has no effect if the address was actually used in a transaction.
+    pub fn unmark_used(&self, keychain: KeychainKind, index: u32) -> bool {
+        self.0.borrow_mut().unmark_used(keychain.into(), index)
+    }
+
+    /// Insert a `TxOut` at the given `OutPoint` into the wallet's transaction graph.
+    ///
+    /// This is useful for providing previous output values so that
+    /// `calculate_fee` and `calculate_fee_rate` work on transactions with
+    /// inputs not owned by this wallet.
+    pub fn insert_txout(&self, outpoint: OutPoint, txout: TxOut) {
+        self.0.borrow_mut().insert_txout(outpoint.into(), txout.into());
     }
 
     pub fn calculate_fee(&self, tx: &Transaction) -> JsResult<Amount> {
