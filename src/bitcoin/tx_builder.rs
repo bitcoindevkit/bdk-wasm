@@ -304,7 +304,7 @@ impl TxBuilder {
 
         if !self.utxos.is_empty() {
             let outpoints: Vec<_> = self.utxos.into_iter().map(Into::into).collect();
-            builder.add_utxos(&outpoints).map_err(|e| BdkError::from(e))?;
+            builder.add_utxos(&outpoints).map_err(BdkError::from)?;
         }
 
         if self.only_spend_from {
