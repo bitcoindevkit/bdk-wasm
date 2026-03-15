@@ -1,6 +1,8 @@
 use std::{ops::Deref, str::FromStr};
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsError;
 
+use bdk_wallet::bitcoin::consensus::{deserialize, serialize};
 use bdk_wallet::bitcoin::{Transaction as BdkTransaction, Txid as BdkTxid};
 
 use crate::result::JsResult;
@@ -116,6 +118,24 @@ impl Transaction {
     pub fn tx_out(&self, output_index: usize) -> JsResult<TxOut> {
         let output = self.0.tx_out(output_index)?;
         Ok(output.into())
+    }
+
+    /// Serialize the transaction to consensus-encoded bytes (BIP144 format).
+    ///
+    /// Returns the raw transaction as a `Uint8Array` suitable for broadcasting,
+    /// passing to other WASM modules (e.g. LDK), or storing in IndexedDB.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        serialize(&self.0)
+    }
+
+    /// Deserialize a transaction from consensus-encoded bytes.
+    ///
+    /// Accepts a `Uint8Array` of raw transaction bytes (as produced by `to_bytes()`
+    /// or any standard Bitcoin serializer).
+    pub fn from_bytes(bytes: &[u8]) -> JsResult<Transaction> {
+        let tx: BdkTransaction =
+            deserialize(bytes).map_err(|e| JsError::new(&format!("Failed to deserialize transaction: {e}")))?;
+        Ok(Transaction(tx))
     }
 
     #[wasm_bindgen(js_name = clone)]
