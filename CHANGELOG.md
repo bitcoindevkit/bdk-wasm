@@ -22,6 +22,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Wallet::create_single` for single-descriptor wallets ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
 - `Wallet::mark_used` and `Wallet::unmark_used` for address usage management ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
 - `Wallet::insert_txout` for providing external TxOut values for fee calculation ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
+- `Transaction::to_bytes` and `Transaction::from_bytes` for consensus-encoded byte serialization/deserialization ([#38](https://github.com/bitcoindevkit/bdk-wasm/issues/38))
 - `BuildFeeBumpError` variants: `TransactionNotFound`, `TransactionConfirmed`, `IrreplaceableTransaction`, `FeeRateUnavailable`, `InvalidOutputIndex`
 - `WalletEvent` type and `Wallet::apply_update_events` for reacting to wallet state changes ([#19](https://github.com/bitcoindevkit/bdk-wasm/issues/19))
 - Upgrade BDK to 2.3.0 with new API wrappers ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14)):
