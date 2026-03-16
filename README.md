@@ -8,10 +8,10 @@
   </p>
 
   <p>
-    <a href="https://www.npmjs.com/package/bdk-wallet-web"><img alt="NPM Package (Web)" src="https://img.shields.io/npm/v/bdk-wallet-web.svg"/></a>
-    <a href="https://www.npmjs.com/package/bdk-wallet-node"><img alt="NPM Package (Node)" src="https://img.shields.io/npm/v/bdk-wallet-node.svg"/></a>
-    <a href="https://github.com/bitcoindevkit/bdk-wasm/blob/master/LICENSE"><img alt="MIT or Apache-2.0 Licensed" src="https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg"/></a>
-    <a href="https://blog.rust-lang.org/2023/10/05/Rust-1.73.0.html"><img alt="Rustc Version 1.73.0+" src="https://img.shields.io/badge/rustc-1.73.0%2B-lightgrey.svg"/></a>
+    <a href="https://www.npmjs.com/package/@bitcoindevkit/bdk-wallet-web"><img alt="NPM Package (Web)" src="https://img.shields.io/npm/v/@bitcoindevkit/bdk-wallet-web.svg"/></a>
+    <a href="https://www.npmjs.com/package/@bitcoindevkit/bdk-wallet-node"><img alt="NPM Package (Node)" src="https://img.shields.io/npm/v/@bitcoindevkit/bdk-wallet-node.svg"/></a>
+    <a href="https://github.com/bitcoindevkit/bdk-wasm/blob/main/LICENSE-MIT"><img alt="MIT or Apache-2.0 Licensed" src="https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg"/></a>
+    <a href="https://blog.rust-lang.org/2024/11/28/Rust-1.83.0.html"><img alt="Rustc Version 1.83.0+" src="https://img.shields.io/badge/rustc-1.83.0%2B-lightgrey.svg"/></a>
     <a href="https://discord.gg/d7NkDKm"><img alt="Chat on Discord" src="https://img.shields.io/discord/753336465005608961?logo=discord"></a>
   </p>
 
@@ -42,13 +42,13 @@ For a lightweight library providing stateless utility functions, see [`bitcoinjs
 ### Browser/Web
 
 ```sh
-yarn add bdk-wallet-web
+yarn add @bitcoindevkit/bdk-wallet-web
 ```
 
 ### Node.js
 
 ```sh
-yarn add bdk-wallet-node
+yarn add @bitcoindevkit/bdk-wallet-node
 ```
 
 ## Notes on WASM Specific Considerations
