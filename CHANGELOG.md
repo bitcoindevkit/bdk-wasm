@@ -9,6 +9,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Expand utility methods on `Psbt`, `Transaction`, `Address`, `TxOut`, and `TxIn` ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
+  - `Psbt::to_bytes()` and `Psbt::from_bytes()` for BIP-174 binary serialization
+  - `Psbt::n_inputs()` and `Psbt::n_outputs()` for PSBT input/output counts
+  - `Transaction::weight` getter for transaction weight in Weight Units
+  - `Transaction::version` getter for the protocol version number
+  - `Transaction::lock_time` getter for the transaction locktime value
+  - `TxIn::sequence` getter for the input sequence number
+  - `Address::address_type` getter to retrieve the address type directly
+  - `Address::is_related_to_pubkey()` to check if an address matches a script
+  - `TxOut::new(value, script_pubkey)` constructor for creating outputs from components
 - Expand TxBuilder API ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
   - `fee_absolute` for setting absolute fee amounts
   - `add_utxo` and `add_utxos` for must-spend UTXOs

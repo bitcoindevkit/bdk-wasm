@@ -89,6 +89,20 @@ impl Deref for TxOut {
 
 #[wasm_bindgen]
 impl TxOut {
+    /// Create a new transaction output.
+    ///
+    /// # Arguments
+    ///
+    /// * `value` - The value of the output, in satoshis.
+    /// * `script_pubkey` - The script which must be satisfied for the output to be spent.
+    #[wasm_bindgen(constructor)]
+    pub fn new(value: Amount, script_pubkey: ScriptBuf) -> Self {
+        TxOut(BdkTxOut {
+            value: value.into(),
+            script_pubkey: script_pubkey.into(),
+        })
+    }
+
     /// The value of the output, in satoshis.
     #[wasm_bindgen(getter)]
     pub fn value(&self) -> Amount {

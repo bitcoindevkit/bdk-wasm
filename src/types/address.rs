@@ -107,6 +107,23 @@ impl Address {
         self.0.script_pubkey().into()
     }
 
+    /// Gets the address type of the address.
+    ///
+    /// # Returns
+    ///
+    /// None if unknown, non-standard or related to the future witness version.
+    #[wasm_bindgen(getter)]
+    pub fn address_type(&self) -> Option<AddressType> {
+        self.0.address_type().map(Into::into)
+    }
+
+    /// Returns `true` if the address creates a particular script.
+    /// This will return `true` even if the address has not been checked against
+    /// the current network.
+    pub fn is_related_to_pubkey(&self, script: ScriptBuf) -> bool {
+        self.0.script_pubkey() == *script
+    }
+
     #[wasm_bindgen(js_name = clone)]
     pub fn js_clone(&self) -> Address {
         self.clone()

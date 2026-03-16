@@ -56,6 +56,36 @@ impl Transaction {
         self.0.vsize()
     }
 
+    /// Returns the weight of this transaction, as defined by BIP-141.
+    ///
+    /// > Transaction weight is defined as Base transaction size * 3 + Total transaction size
+    /// > (ie. the same method as determining the weight of individual transactions in a block).
+    ///
+    /// Returns the weight in Weight Units (WU). Divide by 4 (rounding up) to get vsize.
+    #[wasm_bindgen(getter)]
+    pub fn weight(&self) -> u64 {
+        self.0.weight().to_wu()
+    }
+
+    /// The protocol version, is currently expected to be 1, 2, or 3.
+    ///
+    /// Version 2 is required for transactions using relative timelocks (BIP 68/112/113).
+    /// Version 3 enables additional relay policy rules.
+    #[wasm_bindgen(getter)]
+    pub fn version(&self) -> i32 {
+        self.0.version.0
+    }
+
+    /// Block height or timestamp after which this transaction can be mined.
+    ///
+    /// Returns the raw lock_time value as a u32. A value of 0 means the transaction
+    /// is not locked. Values below 500,000,000 are interpreted as block heights;
+    /// values at or above 500,000,000 are interpreted as Unix timestamps.
+    #[wasm_bindgen(getter)]
+    pub fn lock_time(&self) -> u32 {
+        self.0.lock_time.to_consensus_u32()
+    }
+
     /// Computes the [`Txid`].
     ///
     /// Hashes the transaction **excluding** the segwit data (i.e. the marker, flag bytes, and the
