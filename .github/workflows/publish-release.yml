@@ -2,9 +2,6 @@ name: Publish Release
 
 on:
   workflow_call:
-    secrets:
-      NPM_TOKEN:
-        required: true
 
 jobs:
   publish-release:
@@ -110,13 +107,11 @@ jobs:
           fail-on-cache-miss: true
       - name: Publish web
         working-directory: pkg-web
-        run: npm publish --access=public
+        run: npm publish --access=public --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           SKIP_PREPACK: true
       - name: Publish node
         working-directory: pkg-node
-        run: npm publish --access=public
+        run: npm publish --access=public --provenance
         env:
-          NODE_AUTH_TOKEN: ${{ secrets.NPM_TOKEN }}
           SKIP_PREPACK: true
