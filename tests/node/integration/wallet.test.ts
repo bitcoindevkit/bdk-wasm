@@ -7,7 +7,6 @@ import {
   FeeRate,
   OutPoint,
   Recipient,
-  SignOptions,
   Txid,
   Wallet,
 } from "../../../pkg/bitcoindevkit";
@@ -353,11 +352,9 @@ describe("Wallet", () => {
   });
 
   describe("cancel_tx", () => {
-    it("can be called without error on a non-existent tx", () => {
-      // cancel_tx should not throw even with a dummy transaction
-      // (it only unmarks change addresses - no-op if tx has no wallet outputs)
-      const dummyTx = wallet.transactions();
-      // With an empty wallet, we just verify the method exists and is callable
+    it("is callable on the wallet", () => {
+      // cancel_tx only unmarks change addresses; with an empty wallet it's a no-op.
+      // We verify the method exists and is callable.
       expect(typeof wallet.cancel_tx).toBe("function");
     });
   });
