@@ -11,8 +11,8 @@ use crate::{
     result::JsResult,
     types::{
         AddressInfo, Amount, Balance, ChangeSet, CheckPoint, FeeRate, FullScanRequest, KeychainKind, LocalOutput,
-        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction, TxOut,
-        Txid, Update, WalletEvent,
+        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction,
+        TxDetails, TxOut, Txid, Update, WalletEvent,
     },
 };
 
@@ -263,6 +263,49 @@ impl Wallet {
             .borrow()
             .derivation_of_spk(spk.into())
             .map(|(keychain, index)| SpkIndexed(keychain.into(), index))
+    }
+
+    /// Finalize a PSBT, putting the finalized script and witness values into the inputs.
+    ///
+    /// Returns `true` if the PSBT was fully finalized, `false` if some inputs could not
+    /// be finalized. Use `SignOptions::try_finalize` to control whether finalization is
+    /// attempted.
+    pub fn finalize_psbt(&self, psbt: &mut Psbt, options: SignOptions) -> JsResult<bool> {
+        let result = self.0.borrow().finalize_psbt(psbt, options.into())?;
+        Ok(result)
+    }
+
+    /// Inform the wallet that a transaction built from it will not be broadcast.
+    ///
+    /// This frees up the change address that was reserved when creating the transaction,
+    /// making it available for future transactions.
+    pub fn cancel_tx(&self, tx: &Transaction) {
+        self.0.borrow_mut().cancel_tx(tx);
+    }
+
+    /// Get the descriptor checksum for the given keychain.
+    ///
+    /// Returns the checksum portion of the descriptor string (the part after `#`).
+    pub fn descriptor_checksum(&self, keychain: KeychainKind) -> String {
+        self.0.borrow().descriptor_checksum(keychain.into())
+    }
+
+    /// Get the next derivation index for the given keychain.
+    ///
+    /// This is one more than the highest index that has been derived so far.
+    /// Unlike `derivation_index`, this always returns a value (0 if nothing has been derived).
+    pub fn next_derivation_index(&self, keychain: KeychainKind) -> u32 {
+        self.0.borrow().next_derivation_index(keychain.into())
+    }
+
+    /// Get detailed information about a transaction in the wallet.
+    ///
+    /// Returns `TxDetails` containing the sent/received amounts, fee, fee rate,
+    /// balance delta, chain position, and the full transaction.
+    ///
+    /// Returns `None` if the transaction is not found in the wallet.
+    pub fn tx_details(&self, txid: Txid) -> Option<TxDetails> {
+        self.0.borrow().tx_details(txid.into()).map(Into::into)
     }
 
     pub fn apply_unconfirmed_txs(&self, unconfirmed_txs: Vec<UnconfirmedTx>) {
