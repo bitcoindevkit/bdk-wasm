@@ -8,6 +8,7 @@ use bdk_wallet::{
 };
 
 use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::JsError;
 
 use crate::result::JsResult;
 use crate::types::ScriptBuf;
@@ -99,14 +100,42 @@ impl Psbt {
         self.0.unsigned_tx.clone().into()
     }
 
-    /// Serialize the PSBT to a string in base64 format
+    /// The number of PSBT inputs.
+    pub fn n_inputs(&self) -> usize {
+        self.0.inputs.len()
+    }
+
+    /// The number of PSBT outputs.
+    pub fn n_outputs(&self) -> usize {
+        self.0.outputs.len()
+    }
+
+    /// Serialize the PSBT to binary (BIP-174) format.
+    ///
+    /// Returns the raw PSBT as a `Uint8Array` suitable for storing,
+    /// sending to hardware wallets, or passing to other WASM modules.
+    pub fn to_bytes(&self) -> Vec<u8> {
+        self.0.serialize()
+    }
+
+    /// Deserialize a PSBT from binary (BIP-174) format.
+    ///
+    /// Accepts a `Uint8Array` of raw PSBT bytes (as produced by `to_bytes()`
+    /// or any standard PSBT serializer).
+    pub fn from_bytes(bytes: &[u8]) -> JsResult<Psbt> {
+        let psbt =
+            BdkPsbt::deserialize(bytes).map_err(|e| JsError::new(&format!("Failed to deserialize PSBT: {e}")))?;
+        Ok(Psbt(psbt))
+    }
+
+    /// Serialize the PSBT to a string in base64 format.
     #[allow(clippy::inherent_to_string)]
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         self.0.to_string()
     }
 
-    /// Create a PSBT from a base64 string
+    /// Create a PSBT from a base64 string.
     pub fn from_string(val: &str) -> JsResult<Psbt> {
         Ok(Psbt(BdkPsbt::from_str(val)?))
     }
