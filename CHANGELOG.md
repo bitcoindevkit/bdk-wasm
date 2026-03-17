@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.3.0] - 2026-03-16
+
 ### Added
 
 - Expand utility methods on `Psbt`, `Transaction`, `Address`, `TxOut`, and `TxIn` ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
@@ -34,10 +36,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `Wallet::insert_txout` for providing external TxOut values for fee calculation ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21))
 - `BuildFeeBumpError` variants: `TransactionNotFound`, `TransactionConfirmed`, `IrreplaceableTransaction`, `FeeRateUnavailable`, `InvalidOutputIndex`
 - `WalletEvent` type and `Wallet::apply_update_events` for reacting to wallet state changes ([#19](https://github.com/bitcoindevkit/bdk-wasm/issues/19))
+- `Transaction::to_bytes` and `Transaction::from_bytes` for consensus serialization ([#38](https://github.com/bitcoindevkit/bdk-wasm/issues/38), [#39](https://github.com/bitcoindevkit/bdk-wasm/pull/39)). Enables BDK ↔ LDK interop (e.g. channel funding transactions)
 - Upgrade BDK to 2.3.0 with new API wrappers ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14)):
   - `Wallet::create_from_two_path_descriptor` (BIP-389 multipath descriptors)
   - `TxBuilder::exclude_unconfirmed` and `TxBuilder::exclude_below_confirmations`
-- Dust check methods on `Amount` and `Script` ([#13](https://github.com/bitcoindevkit/bdk-wasm/pull/13))
+- Dust check methods ([#13](https://github.com/bitcoindevkit/bdk-wasm/pull/13)):
+  - `Amount::is_dust(script)` — check whether an amount is below the dust limit for a given script
+  - `ScriptBuf::minimal_non_dust()` — returns the minimum non-dust amount for a script
+  - `ScriptBuf::minimal_non_dust_custom(dust_relay_fee)` — same with a custom dust relay fee rate
 - Regtest integration test environment with Docker Compose and Esplora ([#26](https://github.com/bitcoindevkit/bdk-wasm/pull/26))
 - `CLAUDE.md` with agent instructions and project conventions ([#14](https://github.com/bitcoindevkit/bdk-wasm/pull/14))
 
@@ -55,13 +61,13 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - `bdk_wallet` 2.0.0 → 2.3.0
 - `bdk_esplora` 0.22.0 → 0.22.1
-- `wasm-bindgen` 0.2.100 → 0.2.113
+- `wasm-bindgen` 0.2.100 → 0.2.114
 - `bitcoin` 0.32.6 → 0.32.8
 - `anyhow` 1.0.98 → 1.0.102
 - `serde` 1.0.219 → 1.0.228
-- `web-sys` 0.3.77 → 0.3.90
+- `web-sys` 0.3.77 → 0.3.91
 - `getrandom` 0.2.16 → 0.2.17
-- `wasm-bindgen-test` 0.3.50 → 0.3.63
+- `wasm-bindgen-test` 0.3.50 → 0.3.64
 - CI: `actions/checkout` v4.3.1 → v6.0.2, `actions/setup-node` v4.4.0 → v6.2.0, `actions/cache` v4 → v5.0.3
 - CI: `dtolnay/rust-toolchain` v1, `Swatinem/rust-cache` v2.8.2 (unchanged), `actionlint` 1.7.11
 - All CI actions SHA-pinned with version comments (including `publish-release.yml`)
@@ -87,5 +93,6 @@ Initial release under the [bitcoindevkit](https://github.com/bitcoindevkit) orga
 - CODEOWNERS file
 - Automated npm publishing for `@bitcoindevkit/bdk-wallet-web` and `@bitcoindevkit/bdk-wallet-node`
 
-[Unreleased]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.2.0...HEAD
+[Unreleased]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.3.0...HEAD
+[0.3.0]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bitcoindevkit/bdk-wasm/releases/tag/v0.2.0
