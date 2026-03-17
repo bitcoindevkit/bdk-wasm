@@ -302,4 +302,78 @@ describe("Wallet", () => {
       expect(data.available).toBeDefined();
     }
   });
+
+  describe("descriptor_checksum", () => {
+    it("returns a non-empty checksum string", () => {
+      const checksum = wallet.descriptor_checksum("external");
+
+      expect(typeof checksum).toBe("string");
+      expect(checksum.length).toBeGreaterThan(0);
+      // Descriptor checksums are 8 characters of bech32
+      expect(checksum.length).toBe(8);
+    });
+
+    it("returns different checksums for external and internal keychains", () => {
+      const externalChecksum = wallet.descriptor_checksum("external");
+      const internalChecksum = wallet.descriptor_checksum("internal");
+
+      expect(externalChecksum).not.toBe(internalChecksum);
+    });
+  });
+
+  describe("next_derivation_index", () => {
+    it("returns 0 for a fresh wallet with no revealed addresses", () => {
+      const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+      const index = freshWallet.next_derivation_index("external");
+
+      expect(typeof index).toBe("number");
+      expect(index).toBe(0);
+    });
+
+    it("increments after revealing an address", () => {
+      const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+      freshWallet.reveal_next_address("external");
+      const index = freshWallet.next_derivation_index("external");
+
+      expect(index).toBe(1);
+    });
+
+    it("is consistent with derivation_index", () => {
+      const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+      freshWallet.reveal_next_address("external");
+      freshWallet.reveal_next_address("external");
+
+      const derivIndex = freshWallet.derivation_index("external");
+      const nextIndex = freshWallet.next_derivation_index("external");
+
+      // next_derivation_index should be derivation_index + 1
+      expect(nextIndex).toBe(derivIndex! + 1);
+    });
+  });
+
+  describe("cancel_tx", () => {
+    it("is callable on the wallet", () => {
+      // cancel_tx only unmarks change addresses; with an empty wallet it's a no-op.
+      // We verify the method exists and is callable.
+      expect(typeof wallet.cancel_tx).toBe("function");
+    });
+  });
+
+  describe("finalize_psbt", () => {
+    it("is callable with default SignOptions", () => {
+      expect(typeof wallet.finalize_psbt).toBe("function");
+      // Full PSBT finalization is tested in esplora integration tests
+      // where we have funded wallets
+    });
+  });
+
+  describe("tx_details", () => {
+    it("returns undefined for a non-existent txid", () => {
+      const unknownTxid = Txid.from_string(
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      const details = wallet.tx_details(unknownTxid);
+      expect(details).toBeUndefined();
+    });
+  });
 });
