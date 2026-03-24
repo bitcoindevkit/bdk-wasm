@@ -181,11 +181,11 @@ describe(`Esplora client (${network})`, () => {
     expect(tx.compute_txid()).toBeDefined();
   });
 
-  it("cancel_tx releases the reserved change address", () => {
-    // Record the next derivation index before building a transaction
+  it("cancel_tx frees the change address from a non-broadcast transaction", () => {
+    // Record the internal derivation index before building a new transaction
     const indexBefore = wallet.next_derivation_index("internal");
 
-    // Build a transaction (which reveals a new change address)
+    // Build a transaction (which reveals a new change address internally)
     const recipientAddress = wallet.peek_address("external", 7);
     const sendAmount = Amount.from_sat(BigInt(600));
 
@@ -199,18 +199,32 @@ describe(`Esplora client (${network})`, () => {
 
     const tx = psbt.unsigned_tx;
 
-    // After building, a change address was revealed so the derivation index advanced
+    // Building the tx should have advanced the internal derivation index
+    // (a new change address was revealed)
     const indexAfterBuild = wallet.next_derivation_index("internal");
-    expect(indexAfterBuild).toBeGreaterThanOrEqual(indexBefore);
+    expect(indexAfterBuild).toBeGreaterThan(indexBefore);
 
-    // Cancel the transaction — this frees the reserved change address
+    // Cancel the transaction — should not throw and should unmark the change address
     wallet.cancel_tx(tx);
 
-    // After cancellation, the change address should be unmarked, so the
-    // unused internal address list should include the freed address
-    const unusedAfterCancel = wallet.list_unused_addresses("internal");
-    // The cancelled change address should now appear as unused
-    expect(unusedAfterCancel.length).toBeGreaterThan(0);
+    // The derivation index doesn't go back (addresses are revealed permanently),
+    // but the change address should now be "unused" (unmarked). We verify by
+    // building another tx and checking it reuses the same change index.
+    const psbt2 = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    // After cancel, building a new tx should reuse the freed change index,
+    // so the derivation index should NOT advance further
+    const indexAfterRebuild = wallet.next_derivation_index("internal");
+    expect(indexAfterRebuild).toBe(indexAfterBuild);
+
+    // Clean up: cancel the second tx too
+    wallet.cancel_tx(psbt2.unsigned_tx);
   });
 
   it("excludes utxos from a transaction", () => {
