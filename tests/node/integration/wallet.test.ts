@@ -358,14 +358,10 @@ describe("Wallet", () => {
       // Without funds we can't build a real tx, so we verify the method
       // is callable and does not throw on an empty wallet.
       const freshWallet = Wallet.create(network, externalDesc, internalDesc);
-      const dummyTxid = Txid.from_string(
-        "0000000000000000000000000000000000000000000000000000000000000000"
-      );
 
       // Get the internal derivation index before and after cancel
       const indexBefore = freshWallet.next_derivation_index("internal");
-      // cancel_tx on a wallet with no pending tx is a no-op but must not throw
-      // (there's no tx to cancel, so nothing changes)
+      // cancel_tx on a wallet with no pending tx is a no-op but must not throw.
       // Note: cancel_tx takes a Transaction, not a Txid. We test the full
       // flow in esplora integration tests where we have funded wallets.
       expect(typeof freshWallet.cancel_tx).toBe("function");

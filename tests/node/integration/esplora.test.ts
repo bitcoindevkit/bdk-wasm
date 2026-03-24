@@ -115,15 +115,22 @@ describe(`Esplora client (${network})`, () => {
     const txs = wallet.transactions();
     expect(txs.length).toBeGreaterThan(0);
 
-    const walletTx = txs[0];
+    // Find a transaction where we sent funds (the self-send from the previous test).
+    // The funding tx from the faucet has sent=0, so we pick one with sent > 0.
+    let walletTx = txs[0];
+    for (const tx of txs) {
+      const sr = wallet.sent_and_received(tx.tx);
+      if (sr.sent.to_sat() > BigInt(0)) {
+        walletTx = tx;
+        break;
+      }
+    }
+
     const details = wallet.tx_details(walletTx.txid);
 
     expect(details).toBeDefined();
     expect(details!.txid.toString()).toBe(walletTx.txid.toString());
-    // sent and received should be defined amounts
-    expect(details!.sent.to_sat()).toBeGreaterThanOrEqual(BigInt(0));
-    expect(details!.received.to_sat()).toBeGreaterThanOrEqual(BigInt(0));
-    // For a self-send, both sent and received should be > 0
+    // For the self-send tx, both sent and received should be > 0
     expect(details!.sent.to_sat()).toBeGreaterThan(BigInt(0));
     expect(details!.received.to_sat()).toBeGreaterThan(BigInt(0));
     // Fee should be known for our own transaction
@@ -149,7 +156,7 @@ describe(`Esplora client (${network})`, () => {
 
     const psbt = wallet
       .build_tx()
-      .fee_rate(feeRate)
+      .fee_rate(new FeeRate(BigInt(1)))
       .add_recipient(
         new Recipient(recipientAddress.address.script_pubkey, sendAmount)
       )
@@ -180,7 +187,7 @@ describe(`Esplora client (${network})`, () => {
 
     const psbt = wallet
       .build_tx()
-      .fee_rate(feeRate)
+      .fee_rate(new FeeRate(BigInt(1)))
       .add_recipient(
         new Recipient(recipientAddress.address.script_pubkey, sendAmount)
       )
