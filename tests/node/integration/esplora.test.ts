@@ -163,13 +163,15 @@ describe(`Esplora client (${network})`, () => {
       )
       .finish();
 
-    // Sign without auto-finalize
+    // Sign without auto-finalize: sign() returns false because it reports
+    // finalization status, not signing status. With try_finalize=false,
+    // finalization is skipped so it returns false even though signing succeeded.
     const signOpts = new SignOptions();
     signOpts.try_finalize = false;
     const signed = wallet.sign(psbt, signOpts);
-    expect(signed).toBeTruthy();
+    expect(signed).toBe(false);
 
-    // Now finalize separately
+    // Now finalize separately — this should succeed since signing is done
     const finalizeOpts = new SignOptions();
     const finalized = wallet.finalize_psbt(psbt, finalizeOpts);
     expect(finalized).toBeTruthy();
@@ -179,10 +181,10 @@ describe(`Esplora client (${network})`, () => {
     expect(tx.compute_txid()).toBeDefined();
   });
 
-  it("cancel_tx frees the reserved change address", () => {
-    const internalIndexBefore = wallet.next_derivation_index("internal");
+  it("cancel_tx returns change address to the unused pool", () => {
+    const unusedBefore = wallet.list_unused_addresses("internal");
 
-    // Build a transaction (which reserves a change address)
+    // Build a transaction (which reveals and marks a change address as used)
     const recipientAddress = wallet.peek_address("external", 7);
     const sendAmount = Amount.from_sat(BigInt(600));
 
@@ -196,13 +198,16 @@ describe(`Esplora client (${network})`, () => {
 
     const tx = psbt.unsigned_tx;
 
-    // Cancel the transaction — this should unmark the reserved change address
+    // After building, the change address was revealed and marked as used
+    const unusedDuring = wallet.list_unused_addresses("internal");
+
+    // Cancel the transaction — change address should return to the unused pool
     wallet.cancel_tx(tx);
 
-    // The next derivation index should remain the same (change addr freed)
-    // because cancel_tx unmarks it rather than advancing
-    const internalIndexAfter = wallet.next_derivation_index("internal");
-    expect(internalIndexAfter).toBe(internalIndexBefore);
+    const unusedAfter = wallet.list_unused_addresses("internal");
+    // After cancellation, the unused pool should have more addresses than during
+    // (the change address was freed back)
+    expect(unusedAfter.length).toBeGreaterThan(unusedDuring.length);
   });
 
   it("excludes utxos from a transaction", () => {
