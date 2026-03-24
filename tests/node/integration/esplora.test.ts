@@ -116,11 +116,12 @@ describe(`Esplora client (${network})`, () => {
     expect(txs.length).toBeGreaterThan(0);
 
     // Find a transaction where we sent funds (the self-send from the previous test).
-    // The funding tx from the faucet has sent=0, so we pick one with sent > 0.
+    // The funding tx from the faucet has sent=0, so we pick one where tx_details
+    // reports sent > 0.
     let walletTx = txs[0];
     for (const tx of txs) {
-      const sr = wallet.sent_and_received(tx.tx);
-      if (sr.sent.to_sat() > BigInt(0)) {
+      const d = wallet.tx_details(tx.txid);
+      if (d && d.sent.to_sat() > BigInt(0)) {
         walletTx = tx;
         break;
       }
