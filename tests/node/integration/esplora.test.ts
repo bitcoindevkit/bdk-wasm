@@ -110,6 +110,93 @@ describe(`Esplora client (${network})`, () => {
     expect(walletTx.chain_position.is_confirmed).toBe(false);
   }, 30000);
 
+  it("returns tx_details for a known transaction", () => {
+    // After the "sends a transaction" test, the wallet has at least one tx
+    const txs = wallet.transactions();
+    expect(txs.length).toBeGreaterThan(0);
+
+    const walletTx = txs[0];
+    const details = wallet.tx_details(walletTx.txid);
+
+    expect(details).toBeDefined();
+    expect(details!.txid.toString()).toBe(walletTx.txid.toString());
+    // sent and received should be defined amounts
+    expect(details!.sent.to_sat()).toBeGreaterThanOrEqual(BigInt(0));
+    expect(details!.received.to_sat()).toBeGreaterThanOrEqual(BigInt(0));
+    // For a self-send, both sent and received should be > 0
+    expect(details!.sent.to_sat()).toBeGreaterThan(BigInt(0));
+    expect(details!.received.to_sat()).toBeGreaterThan(BigInt(0));
+    // Fee should be known for our own transaction
+    expect(details!.fee).toBeDefined();
+    expect(details!.fee!.to_sat()).toBeGreaterThan(BigInt(0));
+    // Fee rate should also be available
+    expect(details!.fee_rate).toBeDefined();
+    // balance_delta_sat for a self-send is negative (we paid fees)
+    expect(details!.balance_delta_sat).toBeLessThan(BigInt(0));
+    // Chain position should exist
+    expect(details!.chain_position).toBeDefined();
+    expect(details!.chain_position.is_confirmed).toBe(false);
+    // The full transaction should be accessible
+    expect(details!.tx).toBeDefined();
+    expect(details!.tx.compute_txid().toString()).toBe(
+      walletTx.txid.toString()
+    );
+  });
+
+  it("signs and finalizes a PSBT separately", () => {
+    const recipientAddress = wallet.peek_address("external", 6);
+    const sendAmount = Amount.from_sat(BigInt(800));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(feeRate)
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    // Sign without auto-finalize
+    const signOpts = new SignOptions();
+    signOpts.try_finalize = false;
+    const signed = wallet.sign(psbt, signOpts);
+    expect(signed).toBeTruthy();
+
+    // Now finalize separately
+    const finalizeOpts = new SignOptions();
+    const finalized = wallet.finalize_psbt(psbt, finalizeOpts);
+    expect(finalized).toBeTruthy();
+
+    // The finalized PSBT should be extractable
+    const tx = psbt.extract_tx();
+    expect(tx.compute_txid()).toBeDefined();
+  });
+
+  it("cancel_tx frees the reserved change address", () => {
+    const internalIndexBefore = wallet.next_derivation_index("internal");
+
+    // Build a transaction (which reserves a change address)
+    const recipientAddress = wallet.peek_address("external", 7);
+    const sendAmount = Amount.from_sat(BigInt(600));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(feeRate)
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    const tx = psbt.unsigned_tx;
+
+    // Cancel the transaction — this should unmark the reserved change address
+    wallet.cancel_tx(tx);
+
+    // The next derivation index should remain the same (change addr freed)
+    // because cancel_tx unmarks it rather than advancing
+    const internalIndexAfter = wallet.next_derivation_index("internal");
+    expect(internalIndexAfter).toBe(internalIndexBefore);
+  });
+
   it("excludes utxos from a transaction", () => {
     const utxos = wallet.list_unspent();
     expect(utxos.length).toBeGreaterThan(0);
