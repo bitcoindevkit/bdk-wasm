@@ -182,8 +182,6 @@ describe(`Esplora client (${network})`, () => {
   });
 
   it("cancel_tx returns change address to the unused pool", () => {
-    const unusedBefore = wallet.list_unused_addresses("internal");
-
     // Build a transaction (which reveals and marks a change address as used)
     const recipientAddress = wallet.peek_address("external", 7);
     const sendAmount = Amount.from_sat(BigInt(600));
