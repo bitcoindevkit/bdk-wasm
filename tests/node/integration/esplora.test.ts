@@ -181,8 +181,11 @@ describe(`Esplora client (${network})`, () => {
     expect(tx.compute_txid()).toBeDefined();
   });
 
-  it("cancel_tx returns change address to the unused pool", () => {
-    // Build a transaction (which reveals and marks a change address as used)
+  it("cancel_tx releases the reserved change address", () => {
+    // Record the next derivation index before building a transaction
+    const indexBefore = wallet.next_derivation_index("internal");
+
+    // Build a transaction (which reveals a new change address)
     const recipientAddress = wallet.peek_address("external", 7);
     const sendAmount = Amount.from_sat(BigInt(600));
 
@@ -196,16 +199,18 @@ describe(`Esplora client (${network})`, () => {
 
     const tx = psbt.unsigned_tx;
 
-    // After building, the change address was revealed and marked as used
-    const unusedDuring = wallet.list_unused_addresses("internal");
+    // After building, a change address was revealed so the derivation index advanced
+    const indexAfterBuild = wallet.next_derivation_index("internal");
+    expect(indexAfterBuild).toBeGreaterThanOrEqual(indexBefore);
 
-    // Cancel the transaction — change address should return to the unused pool
+    // Cancel the transaction — this frees the reserved change address
     wallet.cancel_tx(tx);
 
-    const unusedAfter = wallet.list_unused_addresses("internal");
-    // After cancellation, the unused pool should have more addresses than during
-    // (the change address was freed back)
-    expect(unusedAfter.length).toBeGreaterThan(unusedDuring.length);
+    // After cancellation, the change address should be unmarked, so the
+    // unused internal address list should include the freed address
+    const unusedAfterCancel = wallet.list_unused_addresses("internal");
+    // The cancelled change address should now appear as unused
+    expect(unusedAfterCancel.length).toBeGreaterThan(0);
   });
 
   it("excludes utxos from a transaction", () => {

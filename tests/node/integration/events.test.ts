@@ -80,17 +80,28 @@ describeRegtest("Wallet events (regtest)", () => {
 
     // Fund this wallet via regtest faucet (separate from esplora test wallet)
     const address = wallet.peek_address("external", 0).address.toString();
-    execSync(
+    const txid = execSync(
       `docker exec esplora-regtest cli -regtest -rpcwallet=default sendtoaddress ${address} 1.0`,
       { encoding: "utf-8" }
-    );
+    ).trim();
     // Mine to confirm the funding tx
     mineBlocks(1);
-    // Wait for Esplora to index
+    // Wait for Esplora to index the new block
     const res = await fetch(`${esploraUrl}/blocks/tip/height`);
     const currentHeight = parseInt(await res.text(), 10);
     await waitForEsploraHeight(currentHeight);
-  });
+    // Also wait for the specific funding tx to be indexed by Esplora
+    const txStart = Date.now();
+    while (Date.now() - txStart < 30000) {
+      try {
+        const txRes = await fetch(`${esploraUrl}/tx/${txid}`);
+        if (txRes.ok) break;
+      } catch {
+        // Esplora hasn't indexed the tx yet
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }, 60000);
 
   it("returns events on initial full scan", async () => {
     const request = wallet.start_full_scan();
