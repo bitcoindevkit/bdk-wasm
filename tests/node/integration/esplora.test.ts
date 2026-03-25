@@ -110,6 +110,133 @@ describe(`Esplora client (${network})`, () => {
     expect(walletTx.chain_position.is_confirmed).toBe(false);
   }, 30000);
 
+  it("returns tx_details for a known transaction", () => {
+    // After the "sends a transaction" test, the wallet has at least one tx
+    const txs = wallet.transactions();
+    expect(txs.length).toBeGreaterThan(0);
+
+    // Find a transaction where we sent funds (the self-send from the previous test).
+    // The funding tx from the faucet has sent=0, so we pick one where tx_details
+    // reports sent > 0.
+    let walletTx = txs[0];
+    for (const tx of txs) {
+      const d = wallet.tx_details(tx.txid);
+      if (d && d.sent.to_sat() > BigInt(0)) {
+        walletTx = tx;
+        break;
+      }
+    }
+
+    const details = wallet.tx_details(walletTx.txid);
+
+    expect(details).toBeDefined();
+    expect(details!.txid.toString()).toBe(walletTx.txid.toString());
+    // For the self-send tx, both sent and received should be > 0
+    expect(details!.sent.to_sat()).toBeGreaterThan(BigInt(0));
+    expect(details!.received.to_sat()).toBeGreaterThan(BigInt(0));
+    // Fee should be known for our own transaction
+    expect(details!.fee).toBeDefined();
+    expect(details!.fee!.to_sat()).toBeGreaterThan(BigInt(0));
+    // Fee rate should also be available
+    expect(details!.fee_rate).toBeDefined();
+    // balance_delta_sat for a self-send is negative (we paid fees)
+    expect(details!.balance_delta_sat).toBeLessThan(BigInt(0));
+    // Chain position should exist
+    expect(details!.chain_position).toBeDefined();
+    expect(details!.chain_position.is_confirmed).toBe(false);
+    // The full transaction should be accessible
+    expect(details!.tx).toBeDefined();
+    expect(details!.tx.compute_txid().toString()).toBe(
+      walletTx.txid.toString()
+    );
+  });
+
+  it("signs and finalizes a PSBT separately", () => {
+    const recipientAddress = wallet.peek_address("external", 6);
+    const sendAmount = Amount.from_sat(BigInt(800));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    // Sign without auto-finalize: sign() returns false because it reports
+    // finalization status, not signing status. With try_finalize=false,
+    // finalization is skipped so it returns false even though signing succeeded.
+    const signOpts = new SignOptions();
+    signOpts.try_finalize = false;
+    const signed = wallet.sign(psbt, signOpts);
+    expect(signed).toBe(false);
+
+    // Now finalize separately — this should succeed since signing is done
+    const finalizeOpts = new SignOptions();
+    const finalized = wallet.finalize_psbt(psbt, finalizeOpts);
+    expect(finalized).toBeTruthy();
+
+    // The finalized PSBT should be extractable
+    const tx = psbt.extract_tx();
+    expect(tx.compute_txid()).toBeDefined();
+  });
+
+  it("cancel_tx frees the change address from a non-broadcast transaction", () => {
+    // Use a small send relative to balance to guarantee a change output is created.
+    // This ensures BDK reveals a new internal (change) address.
+    const balance = wallet.balance.trusted_spendable.to_sat();
+    const sendSats = balance / BigInt(4); // 25% of balance => guaranteed change
+    expect(sendSats).toBeGreaterThan(BigInt(546)); // sanity check
+
+    // Record the internal derivation index before building a new transaction
+    const indexBefore = wallet.next_derivation_index("internal");
+
+    // Build a transaction (which reveals a new change address internally)
+    const recipientAddress = wallet.peek_address("external", 7);
+    const sendAmount = Amount.from_sat(sendSats);
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    const tx = psbt.unsigned_tx;
+
+    // Building the tx should have advanced the internal derivation index
+    // (a new change address was revealed because change > dust threshold)
+    const indexAfterBuild = wallet.next_derivation_index("internal");
+    expect(indexAfterBuild).toBeGreaterThan(indexBefore);
+
+    // Cancel the transaction — should not throw and should unmark the change address
+    wallet.cancel_tx(tx);
+
+    // The derivation index doesn't go back (addresses are revealed permanently),
+    // but the change address should now be "unused" (unmarked). We verify by
+    // building another tx and checking it reuses the same change index.
+    // Note: wasm-bindgen takes ownership of ScriptBuf and Amount, so we must
+    // create fresh instances for each Recipient.
+    const recipientAddress2 = wallet.peek_address("external", 7);
+    const sendAmount2 = Amount.from_sat(sendSats);
+    const psbt2 = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress2.address.script_pubkey, sendAmount2)
+      )
+      .finish();
+
+    // After cancel, building a new tx should reuse the freed change index,
+    // so the derivation index should NOT advance further
+    const indexAfterRebuild = wallet.next_derivation_index("internal");
+    expect(indexAfterRebuild).toBe(indexAfterBuild);
+
+    // Clean up: cancel the second tx too
+    wallet.cancel_tx(psbt2.unsigned_tx);
+  });
+
   it("excludes utxos from a transaction", () => {
     const utxos = wallet.list_unspent();
     expect(utxos.length).toBeGreaterThan(0);

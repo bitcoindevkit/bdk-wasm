@@ -80,17 +80,38 @@ describeRegtest("Wallet events (regtest)", () => {
 
     // Fund this wallet via regtest faucet (separate from esplora test wallet)
     const address = wallet.peek_address("external", 0).address.toString();
-    execSync(
+    const txid = execSync(
       `docker exec esplora-regtest cli -regtest -rpcwallet=default sendtoaddress ${address} 1.0`,
       { encoding: "utf-8" }
-    );
+    ).trim();
     // Mine to confirm the funding tx
     mineBlocks(1);
-    // Wait for Esplora to index
+    // Wait for Esplora to index the new block
     const res = await fetch(`${esploraUrl}/blocks/tip/height`);
     const currentHeight = parseInt(await res.text(), 10);
     await waitForEsploraHeight(currentHeight);
-  });
+    // Wait for the funding tx to be confirmed AND indexed at the address level.
+    // Esplora indexes blocks, then transactions, then address histories separately.
+    // The full_scan queries by script pubkey, so we must wait for the address index.
+    const txStart = Date.now();
+    while (Date.now() - txStart < 30000) {
+      try {
+        const addrRes = await fetch(`${esploraUrl}/address/${address}/txs`);
+        if (addrRes.ok) {
+          const txs = await addrRes.json();
+          if (
+            Array.isArray(txs) &&
+            txs.some((t: { txid: string }) => t.txid === txid)
+          ) {
+            break;
+          }
+        }
+      } catch {
+        // Esplora hasn't indexed the address yet
+      }
+      await new Promise((r) => setTimeout(r, 1000));
+    }
+  }, 60000);
 
   it("returns events on initial full scan", async () => {
     const request = wallet.start_full_scan();
@@ -154,8 +175,23 @@ describeRegtest("Wallet events (regtest)", () => {
     // Mine blocks to confirm
     mineBlocks(1);
 
-    // Wait for Esplora to index the new block
+    // Wait for Esplora to index the new block AND the confirmed tx
     await waitForEsploraHeight(tipBefore + 1);
+    // Also wait for the tx to appear as confirmed in Esplora
+    const txidStr = txid.toString();
+    const waitStart = Date.now();
+    while (Date.now() - waitStart < 15000) {
+      try {
+        const txRes = await fetch(`${esploraUrl}/tx/${txidStr}`);
+        if (txRes.ok) {
+          const txData = await txRes.json();
+          if (txData.status?.confirmed) break;
+        }
+      } catch {
+        // not indexed yet
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
 
     // Sync and get events
     const syncRequest = wallet.start_sync_with_revealed_spks();

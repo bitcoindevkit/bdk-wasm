@@ -7,6 +7,16 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+
+- Expand Wallet API surface ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
+  - `Wallet::finalize_psbt` for finalizing PSBTs (adding finalized script/witness to inputs)
+  - `Wallet::cancel_tx` for releasing reserved change addresses when a transaction won't be broadcast
+  - `Wallet::tx_details` for retrieving comprehensive transaction details (sent, received, fee, fee rate, balance delta, chain position)
+  - `Wallet::descriptor_checksum` for getting the descriptor checksum string for a keychain
+  - `Wallet::next_derivation_index` for getting the next unused derivation index for a keychain
+- `TxDetails` type with getters for `txid`, `sent`, `received`, `fee`, `fee_rate`, `balance_delta_sat`, `chain_position`, and `tx`
+
 ## [0.3.0] - 2026-03-16
 
 ### Added
