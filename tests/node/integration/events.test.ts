@@ -90,14 +90,24 @@ describeRegtest("Wallet events (regtest)", () => {
     const res = await fetch(`${esploraUrl}/blocks/tip/height`);
     const currentHeight = parseInt(await res.text(), 10);
     await waitForEsploraHeight(currentHeight);
-    // Also wait for the specific funding tx to be indexed by Esplora
+    // Wait for the funding tx to be confirmed AND indexed at the address level.
+    // Esplora indexes blocks, then transactions, then address histories separately.
+    // The full_scan queries by script pubkey, so we must wait for the address index.
     const txStart = Date.now();
     while (Date.now() - txStart < 30000) {
       try {
-        const txRes = await fetch(`${esploraUrl}/tx/${txid}`);
-        if (txRes.ok) break;
+        const addrRes = await fetch(`${esploraUrl}/address/${address}/txs`);
+        if (addrRes.ok) {
+          const txs = await addrRes.json();
+          if (
+            Array.isArray(txs) &&
+            txs.some((t: { txid: string }) => t.txid === txid)
+          ) {
+            break;
+          }
+        }
       } catch {
-        // Esplora hasn't indexed the tx yet
+        // Esplora hasn't indexed the address yet
       }
       await new Promise((r) => setTimeout(r, 1000));
     }
@@ -165,8 +175,23 @@ describeRegtest("Wallet events (regtest)", () => {
     // Mine blocks to confirm
     mineBlocks(1);
 
-    // Wait for Esplora to index the new block
+    // Wait for Esplora to index the new block AND the confirmed tx
     await waitForEsploraHeight(tipBefore + 1);
+    // Also wait for the tx to appear as confirmed in Esplora
+    const txidStr = txid.toString();
+    const waitStart = Date.now();
+    while (Date.now() - waitStart < 15000) {
+      try {
+        const txRes = await fetch(`${esploraUrl}/tx/${txidStr}`);
+        if (txRes.ok) {
+          const txData = await txRes.json();
+          if (txData.status?.confirmed) break;
+        }
+      } catch {
+        // not indexed yet
+      }
+      await new Promise((r) => setTimeout(r, 500));
+    }
 
     // Sync and get events
     const syncRequest = wallet.start_sync_with_revealed_spks();

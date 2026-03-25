@@ -210,11 +210,15 @@ describe(`Esplora client (${network})`, () => {
     // The derivation index doesn't go back (addresses are revealed permanently),
     // but the change address should now be "unused" (unmarked). We verify by
     // building another tx and checking it reuses the same change index.
+    // Note: wasm-bindgen takes ownership of ScriptBuf and Amount, so we must
+    // create fresh instances for each Recipient.
+    const recipientAddress2 = wallet.peek_address("external", 7);
+    const sendAmount2 = Amount.from_sat(BigInt(600));
     const psbt2 = wallet
       .build_tx()
       .fee_rate(new FeeRate(BigInt(1)))
       .add_recipient(
-        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        new Recipient(recipientAddress2.address.script_pubkey, sendAmount2)
       )
       .finish();
 
