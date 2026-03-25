@@ -182,12 +182,18 @@ describe(`Esplora client (${network})`, () => {
   });
 
   it("cancel_tx frees the change address from a non-broadcast transaction", () => {
+    // Use a small send relative to balance to guarantee a change output is created.
+    // This ensures BDK reveals a new internal (change) address.
+    const balance = wallet.balance.trusted_spendable.to_sat();
+    const sendSats = balance / BigInt(4); // 25% of balance => guaranteed change
+    expect(sendSats).toBeGreaterThan(BigInt(546)); // sanity check
+
     // Record the internal derivation index before building a new transaction
     const indexBefore = wallet.next_derivation_index("internal");
 
     // Build a transaction (which reveals a new change address internally)
     const recipientAddress = wallet.peek_address("external", 7);
-    const sendAmount = Amount.from_sat(BigInt(600));
+    const sendAmount = Amount.from_sat(sendSats);
 
     const psbt = wallet
       .build_tx()
@@ -200,7 +206,7 @@ describe(`Esplora client (${network})`, () => {
     const tx = psbt.unsigned_tx;
 
     // Building the tx should have advanced the internal derivation index
-    // (a new change address was revealed)
+    // (a new change address was revealed because change > dust threshold)
     const indexAfterBuild = wallet.next_derivation_index("internal");
     expect(indexAfterBuild).toBeGreaterThan(indexBefore);
 
@@ -213,7 +219,7 @@ describe(`Esplora client (${network})`, () => {
     // Note: wasm-bindgen takes ownership of ScriptBuf and Amount, so we must
     // create fresh instances for each Recipient.
     const recipientAddress2 = wallet.peek_address("external", 7);
-    const sendAmount2 = Amount.from_sat(BigInt(600));
+    const sendAmount2 = Amount.from_sat(sendSats);
     const psbt2 = wallet
       .build_tx()
       .fee_rate(new FeeRate(BigInt(1)))
