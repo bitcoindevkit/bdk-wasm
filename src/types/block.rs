@@ -20,8 +20,8 @@ impl BlockId {
     /// Create a new `BlockId` from a height and block hash string.
     #[wasm_bindgen(constructor)]
     pub fn new(height: u32, hash: &str) -> JsResult<BlockId> {
-        let block_hash = BdkBlockHash::from_str(hash)
-            .map_err(|e| JsError::new(&format!("Invalid block hash: {e}")))?;
+        let block_hash =
+            BdkBlockHash::from_str(hash).map_err(|e| JsError::new(&format!("Invalid block hash: {e}")))?;
         Ok(BlockId(BdkBlockId {
             height,
             hash: block_hash,
@@ -75,8 +75,8 @@ impl Block {
     /// Accepts a `Uint8Array` of raw block bytes as produced by Bitcoin Core
     /// or any standard Bitcoin serializer.
     pub fn from_bytes(bytes: &[u8]) -> JsResult<Block> {
-        let block: BdkBlock = deserialize(bytes)
-            .map_err(|e| JsError::new(&format!("Failed to deserialize block: {e}")))?;
+        let block: BdkBlock =
+            deserialize(bytes).map_err(|e| JsError::new(&format!("Failed to deserialize block: {e}")))?;
         Ok(Block(block))
     }
 

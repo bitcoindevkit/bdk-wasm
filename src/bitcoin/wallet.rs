@@ -10,16 +10,16 @@ use crate::{
     bitcoin::WalletTx,
     result::JsResult,
     types::{
-        AddressInfo, Amount, Balance, Block, ChangeSet, CheckPoint, EvictedTx, FeeRate, FullScanRequest,
-        KeychainKind, LocalOutput, Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed,
-        SyncRequest, Transaction, TxDetails, TxOut, Txid, Update, WalletEvent,
+        AddressInfo, Amount, Balance, Block, ChangeSet, CheckPoint, EvictedTx, FeeRate, FullScanRequest, KeychainKind,
+        LocalOutput, Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest,
+        Transaction, TxDetails, TxOut, Txid, Update, WalletEvent,
     },
 };
 
 use super::{TxBuilder, UnconfirmedTx};
 
 use crate::types::{BdkError, BdkErrorCode, BlockId};
-use bdk_wallet::ApplyBlockError;
+use bdk_wallet::chain::local_chain::{ApplyHeaderError, CannotConnectError};
 
 // We wrap a `BdkWallet` in `Rc<RefCell<...>>` because `wasm_bindgen` do not
 // support Rust's lifetimes. This allows us to forward a reference to the
@@ -469,14 +469,20 @@ impl Default for SignOptions {
     }
 }
 
-impl From<ApplyBlockError> for BdkError {
-    fn from(e: ApplyBlockError) -> Self {
-        use ApplyBlockError::*;
+impl From<CannotConnectError> for BdkError {
+    fn from(e: CannotConnectError) -> Self {
+        BdkError::new(BdkErrorCode::CannotConnect, e.to_string(), ())
+    }
+}
+
+impl From<ApplyHeaderError> for BdkError {
+    fn from(e: ApplyHeaderError) -> Self {
+        use ApplyHeaderError::*;
         match &e {
-            CannotConnect(_) => BdkError::new(BdkErrorCode::CannotConnect, e.to_string(), ()),
-            UnexpectedConnectedToHash { .. } => {
+            InconsistentBlocks => {
                 BdkError::new(BdkErrorCode::UnexpectedConnectedToHash, e.to_string(), ())
             }
+            CannotConnect(inner) => BdkError::new(BdkErrorCode::CannotConnect, inner.to_string(), ()),
         }
     }
 }
