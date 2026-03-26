@@ -3,7 +3,10 @@ import {
   Amount,
   BdkError,
   BdkErrorCode,
+  Block,
+  BlockId,
   ChangeSpendPolicy,
+  EvictedTx,
   FeeRate,
   OutPoint,
   Recipient,
@@ -395,6 +398,58 @@ describe("Wallet", () => {
         "aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"
       );
       expect(freshWallet.tx_details(txid)).toBeUndefined();
+    });
+  });
+
+  describe("BlockId", () => {
+    it("creates from height and hash string", () => {
+      const hash =
+        "000000000019d6689c085ae165831e934ff763ae46a2a6c172b3f1b60a8ce26f";
+      const blockId = new BlockId(0, hash);
+
+      expect(blockId.height).toBe(0);
+      expect(blockId.hash).toBe(hash);
+    });
+
+    it("throws for an invalid hash string", () => {
+      expect(() => new BlockId(0, "not-a-hash")).toThrow();
+    });
+  });
+
+  describe("Block", () => {
+    it("throws for invalid bytes", () => {
+      expect(() => Block.from_bytes(new Uint8Array([0, 1, 2]))).toThrow();
+    });
+  });
+
+  describe("EvictedTx", () => {
+    it("creates from txid and timestamp", () => {
+      const txid = Txid.from_string(
+        "0000000000000000000000000000000000000000000000000000000000000000"
+      );
+      const evicted = new EvictedTx(txid, BigInt(1700000000));
+
+      expect(evicted).toBeDefined();
+    });
+  });
+
+  describe("apply_evicted_txs", () => {
+    it("is callable with an empty list (no-op)", () => {
+      const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+      // Applying an empty eviction list should be a no-op and not throw
+      freshWallet.apply_evicted_txs([]);
+      expect(freshWallet.transactions().length).toBe(0);
+    });
+  });
+
+  describe("checkpoints", () => {
+    it("returns at least the genesis checkpoint for a fresh wallet", () => {
+      const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+      const cps = freshWallet.checkpoints();
+
+      // A fresh wallet should have at least the genesis checkpoint
+      expect(cps.length).toBeGreaterThanOrEqual(1);
+      expect(cps[0].height).toBe(0);
     });
   });
 });
