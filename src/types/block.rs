@@ -20,8 +20,7 @@ impl BlockId {
     /// Create a new `BlockId` from a height and block hash string.
     #[wasm_bindgen(constructor)]
     pub fn new(height: u32, hash: &str) -> JsResult<BlockId> {
-        let block_hash =
-            BdkBlockHash::from_str(hash).map_err(|e| JsError::new(&format!("Invalid block hash: {e}")))?;
+        let block_hash = BdkBlockHash::from_str(hash).map_err(|e| JsError::new(&format!("Invalid block hash: {e}")))?;
         Ok(BlockId(BdkBlockId {
             height,
             hash: block_hash,

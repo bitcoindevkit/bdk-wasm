@@ -479,9 +479,7 @@ impl From<ApplyHeaderError> for BdkError {
     fn from(e: ApplyHeaderError) -> Self {
         use ApplyHeaderError::*;
         match &e {
-            InconsistentBlocks => {
-                BdkError::new(BdkErrorCode::UnexpectedConnectedToHash, e.to_string(), ())
-            }
+            InconsistentBlocks => BdkError::new(BdkErrorCode::UnexpectedConnectedToHash, e.to_string(), ()),
             CannotConnect(inner) => BdkError::new(BdkErrorCode::CannotConnect, inner.to_string(), ()),
         }
     }
