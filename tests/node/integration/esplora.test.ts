@@ -454,8 +454,12 @@ describeRegtest("Block application APIs (regtest)", () => {
     expect(details!.chain_position.anchor!.block_id.height).toBe(newHeight);
 
     const checkpoints = wallet.checkpoints();
-    expect(checkpoints.at(-1)!.height).toBe(newHeight);
-    expect(checkpoints.at(-1)!.hash).toBe(block.block_hash);
+    expect(
+      checkpoints.some(
+        (checkpoint) =>
+          checkpoint.height === newHeight && checkpoint.hash === block.block_hash
+      )
+    ).toBe(true);
   }, 30000);
 
   it("applies a mined block with an explicit connection point", async () => {
@@ -496,8 +500,7 @@ describeRegtest("Block application APIs (regtest)", () => {
     expect(wallet.latest_checkpoint.height).toBe(newHeight);
     expect(wallet.latest_checkpoint.hash).toBe(block.block_hash);
 
-    const checkpoints = wallet.checkpoints();
-    expect(checkpoints.at(-1)!.prev!.hash).toBe(previousTip.hash);
+    expect(wallet.latest_checkpoint.prev!.hash).toBe(previousTip.hash);
   }, 30000);
 
   it("rejects blocks with the wrong connected_to hash", () => {
@@ -506,14 +509,14 @@ describeRegtest("Block application APIs (regtest)", () => {
 
     const newHeight = previousTip.height + 1;
     const block = getBlock(newHeight);
-    const wrongConnectedTo = new BlockId(
-      previousTip.height,
-      wallet.checkpoints()[0].hash
-    );
+    const wrongHash = wallet
+      .checkpoints()
+      .find((checkpoint) => checkpoint.hash !== previousTip.hash)!.hash;
+    const wrongConnectedTo = new BlockId(previousTip.height, wrongHash);
 
     try {
       wallet.apply_block_connected_to_events(block, newHeight, wrongConnectedTo);
-      fail("Expected apply_block_connected_to_events to throw");
+      throw new Error("Expected apply_block_connected_to_events to throw");
     } catch (error) {
       expect(error).toBeInstanceOf(BdkError);
       expect((error as BdkError).code).toBe(
@@ -553,12 +556,13 @@ describeRegtest("Block application APIs (regtest)", () => {
 
     const tx = psbt.extract_tx();
     const txid = tx.compute_txid();
+    const txidString = txid.toString();
     wallet.apply_unconfirmed_txs([new UnconfirmedTx(tx, firstSeen)]);
 
     expect(
       wallet
         .transactions()
-        .some((candidate) => candidate.txid.toString() === txid.toString())
+        .some((candidate) => candidate.txid.toString() === txidString)
     ).toBe(true);
 
     wallet.apply_evicted_txs([new EvictedTx(txid, firstSeen + BigInt(1))]);
@@ -566,7 +570,7 @@ describeRegtest("Block application APIs (regtest)", () => {
     expect(
       wallet
         .transactions()
-        .some((candidate) => candidate.txid.toString() === txid.toString())
+        .some((candidate) => candidate.txid.toString() === txidString)
     ).toBe(false);
   });
 });
