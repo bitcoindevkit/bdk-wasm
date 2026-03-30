@@ -1,14 +1,20 @@
+import { execSync } from "child_process";
 import {
   Amount,
+  BdkError,
+  BdkErrorCode,
+  Block,
+  BlockId,
   EsploraClient,
+  EvictedTx,
   FeeRate,
   Network,
   Recipient,
-  UnconfirmedTx,
-  Wallet,
   SignOptions,
   Psbt,
   TxOrdering,
+  UnconfirmedTx,
+  Wallet,
 } from "../../../pkg/bitcoindevkit";
 
 // Network configuration via environment variables.
@@ -22,6 +28,81 @@ const expectedAddress: Record<string, string> = {
   signet: "tb1qkn59f87tznmmjw5nu6ng8p7k6vcur2eme637rm",
   regtest: "bcrt1qkn59f87tznmmjw5nu6ng8p7k6vcur2emmngn5j",
 };
+
+const describeRegtest = network === "regtest" ? describe : describe.skip;
+
+function mineBlocks(count: number): void {
+  const address = execSync(
+    `docker exec esplora-regtest cli -regtest getnewaddress`,
+    { encoding: "utf-8" }
+  ).trim();
+  execSync(
+    `docker exec esplora-regtest cli -regtest generatetoaddress ${count} ${address}`,
+    { encoding: "utf-8" }
+  );
+}
+
+function getBlockHash(height: number): string {
+  return execSync(
+    `docker exec esplora-regtest cli -regtest getblockhash ${height}`,
+    { encoding: "utf-8" }
+  ).trim();
+}
+
+function getBlock(height: number): Block {
+  const blockHash = getBlockHash(height);
+  const blockHex = execSync(
+    `docker exec esplora-regtest cli -regtest getblock ${blockHash} 0`,
+    { encoding: "utf-8" }
+  ).trim();
+  return Block.from_bytes(Buffer.from(blockHex, "hex"));
+}
+
+async function waitForEsploraHeight(
+  minHeight: number,
+  timeoutMs = 30000
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(`${esploraUrl}/blocks/tip/height`);
+      const height = parseInt(await res.text(), 10);
+      if (height >= minHeight) return;
+    } catch {
+      // Esplora not ready yet
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(
+    `Esplora did not reach height ${minHeight} within ${timeoutMs}ms`
+  );
+}
+
+async function waitForAddressTx(
+  address: string,
+  txid: string,
+  timeoutMs = 30000
+): Promise<void> {
+  const start = Date.now();
+  while (Date.now() - start < timeoutMs) {
+    try {
+      const res = await fetch(`${esploraUrl}/address/${address}/txs`);
+      if (res.ok) {
+        const txs = await res.json();
+        if (
+          Array.isArray(txs) &&
+          txs.some((tx: { txid: string }) => tx.txid === txid)
+        ) {
+          return;
+        }
+      }
+    } catch {
+      // Esplora has not indexed the address yet
+    }
+    await new Promise((resolve) => setTimeout(resolve, 1000));
+  }
+  throw new Error(`Esplora did not index ${txid} for ${address} in time`);
+}
 
 // Tests are expected to run in order
 describe(`Esplora client (${network})`, () => {
@@ -279,4 +360,217 @@ describe(`Esplora client (${network})`, () => {
       expect(psbt.unsigned_tx.tx_out(2).value.to_btc()).toBeGreaterThan(0);
     });
   }
+});
+
+describeRegtest("Block application APIs (regtest)", () => {
+  const stopGap = 5;
+  const externalDescriptor =
+    "wpkh(tprv8ZgxMBicQKsPf6vydw7ixvsLKY79hmeXujBkGCNCApyft92yVYng2y28JpFZcneBYTTHycWSRpokhHE25GfHPBxnW5GpSm2dMWzEi9xxEyU/84'/1'/0'/0/*)#uel0vg9p";
+  const internalDescriptor =
+    "wpkh(tprv8ZgxMBicQKsPf6vydw7ixvsLKY79hmeXujBkGCNCApyft92yVYng2y28JpFZcneBYTTHycWSRpokhHE25GfHPBxnW5GpSm2dMWzEi9xxEyU/84'/1'/0'/1/*)#dd6w3a4e";
+
+  const esploraClient = new EsploraClient(esploraUrl, 0);
+  let wallet: Wallet;
+
+  beforeAll(async () => {
+    wallet = Wallet.create(network, externalDescriptor, internalDescriptor);
+
+    const fundingAddress = wallet.reveal_next_address("external").address.toString();
+    const fundingTxid = execSync(
+      `docker exec esplora-regtest cli -regtest -rpcwallet=default sendtoaddress ${fundingAddress} 1.0`,
+      { encoding: "utf-8" }
+    ).trim();
+
+    mineBlocks(1);
+
+    const currentHeight = parseInt(
+      execSync(`docker exec esplora-regtest cli -regtest getblockcount`, {
+        encoding: "utf-8",
+      }).trim(),
+      10
+    );
+    await waitForEsploraHeight(currentHeight);
+    await waitForAddressTx(fundingAddress, fundingTxid);
+
+    const request = wallet.start_full_scan();
+    const update = await esploraClient.full_scan(request, stopGap, 1);
+    wallet.apply_update(update);
+
+    expect(wallet.balance.trusted_spendable.to_sat()).toBeGreaterThan(BigInt(0));
+    expect(wallet.latest_checkpoint.height).toBeGreaterThan(0);
+  }, 60000);
+
+  it("applies a mined block via prev_blockhash and returns real events", async () => {
+    const tipBefore = wallet.latest_checkpoint;
+    const recipientAddress = wallet.reveal_next_address("external");
+    const sendAmount = Amount.from_sat(BigInt(5000));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    expect(wallet.sign(psbt, new SignOptions())).toBe(true);
+
+    const tx = psbt.extract_tx();
+    const txid = tx.compute_txid();
+    await esploraClient.broadcast(tx);
+
+    mineBlocks(1);
+
+    const newHeight = tipBefore.height + 1;
+    const block = getBlock(newHeight);
+    const events = wallet.apply_block_events(block, newHeight);
+
+    expect(block.prev_blockhash).toBe(tipBefore.hash);
+    expect(block.block_hash).toBe(getBlockHash(newHeight));
+    expect(block.tx_count).toBeGreaterThan(0);
+    expect(
+      block.txdata.some(
+        (candidate) => candidate.compute_txid().toString() === txid.toString()
+      )
+    ).toBe(true);
+
+    const confirmedEvent = events.find(
+      (event) => event.txid?.toString() === txid.toString()
+    );
+    expect(confirmedEvent).toBeDefined();
+    expect(confirmedEvent!.kind).toBe("tx_confirmed");
+    expect(confirmedEvent!.block_time!.block_id.height).toBe(newHeight);
+
+    const chainTipEvent = events.find(
+      (event) => event.kind === "chain_tip_changed"
+    );
+    expect(chainTipEvent).toBeDefined();
+    expect(chainTipEvent!.old_tip!.height).toBe(tipBefore.height);
+    expect(chainTipEvent!.new_tip!.hash).toBe(block.block_hash);
+
+    const details = wallet.tx_details(txid);
+    expect(details).toBeDefined();
+    expect(details!.chain_position.is_confirmed).toBe(true);
+    expect(details!.chain_position.anchor!.block_id.height).toBe(newHeight);
+
+    const checkpoints = wallet.checkpoints();
+    expect(
+      checkpoints.some(
+        (checkpoint) =>
+          checkpoint.height === newHeight && checkpoint.hash === block.block_hash
+      )
+    ).toBe(true);
+  }, 30000);
+
+  it("applies a mined block with an explicit connection point", async () => {
+    const previousTip = wallet.latest_checkpoint;
+    const recipientAddress = wallet.reveal_next_address("external");
+    const sendAmount = Amount.from_sat(BigInt(7000));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    expect(wallet.sign(psbt, new SignOptions())).toBe(true);
+
+    const tx = psbt.extract_tx();
+    const txid = tx.compute_txid();
+    await esploraClient.broadcast(tx);
+
+    mineBlocks(1);
+
+    const newHeight = previousTip.height + 1;
+    const block = getBlock(newHeight);
+    const connectedTo = new BlockId(previousTip.height, previousTip.hash);
+    const events = wallet.apply_block_connected_to_events(
+      block,
+      newHeight,
+      connectedTo
+    );
+
+    const confirmedEvent = events.find(
+      (event) => event.txid?.toString() === txid.toString()
+    );
+    expect(confirmedEvent).toBeDefined();
+    expect(confirmedEvent!.kind).toBe("tx_confirmed");
+    expect(wallet.latest_checkpoint.height).toBe(newHeight);
+    expect(wallet.latest_checkpoint.hash).toBe(block.block_hash);
+
+    expect(wallet.latest_checkpoint.prev!.hash).toBe(previousTip.hash);
+  }, 30000);
+
+  it("rejects blocks with the wrong connected_to hash", () => {
+    const previousTip = wallet.latest_checkpoint;
+    mineBlocks(1);
+
+    const newHeight = previousTip.height + 1;
+    const block = getBlock(newHeight);
+    const wrongHash = wallet
+      .checkpoints()
+      .find((checkpoint) => checkpoint.hash !== previousTip.hash)!.hash;
+    const wrongConnectedTo = new BlockId(previousTip.height, wrongHash);
+
+    try {
+      wallet.apply_block_connected_to_events(block, newHeight, wrongConnectedTo);
+      throw new Error("Expected apply_block_connected_to_events to throw");
+    } catch (error) {
+      expect(error).toBeInstanceOf(BdkError);
+      expect((error as BdkError).code).toBe(
+        BdkErrorCode.UnexpectedConnectedToHash
+      );
+    }
+
+    expect(wallet.latest_checkpoint.height).toBe(previousTip.height);
+    expect(wallet.latest_checkpoint.hash).toBe(previousTip.hash);
+
+    const connectedTo = new BlockId(previousTip.height, previousTip.hash);
+    const events = wallet.apply_block_connected_to_events(
+      block,
+      newHeight,
+      connectedTo
+    );
+    expect(
+      events.some((event) => event.kind === "chain_tip_changed")
+    ).toBe(true);
+    expect(wallet.latest_checkpoint.height).toBe(newHeight);
+  });
+
+  it("drops evicted mempool transactions from canonical history", () => {
+    const recipientAddress = wallet.reveal_next_address("external");
+    const sendAmount = Amount.from_sat(BigInt(9000));
+    const firstSeen = BigInt(Math.floor(Date.now() / 1000));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    expect(wallet.sign(psbt, new SignOptions())).toBe(true);
+
+    const tx = psbt.extract_tx();
+    const txid = tx.compute_txid();
+    const txidString = txid.toString();
+    wallet.apply_unconfirmed_txs([new UnconfirmedTx(tx, firstSeen)]);
+
+    expect(
+      wallet
+        .transactions()
+        .some((candidate) => candidate.txid.toString() === txidString)
+    ).toBe(true);
+
+    wallet.apply_evicted_txs([new EvictedTx(txid, firstSeen + BigInt(1))]);
+
+    expect(
+      wallet
+        .transactions()
+        .some((candidate) => candidate.txid.toString() === txidString)
+    ).toBe(false);
+  });
 });

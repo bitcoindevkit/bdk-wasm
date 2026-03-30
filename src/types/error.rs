@@ -133,6 +133,13 @@ pub enum BdkErrorCode {
     /// Invalid character in input.
     InvalidCharacter,
 
+    /// ------- Block application errors -------
+
+    /// Cannot connect block to the existing chain
+    CannotConnect,
+    /// Connected-to hash does not match the expected hash
+    UnexpectedConnectedToHash,
+
     /// ------- Other errors -------
     /// Unexpected error, should never happen
     Unexpected,

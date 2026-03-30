@@ -16,6 +16,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `Wallet::descriptor_checksum` for getting the descriptor checksum string for a keychain
   - `Wallet::next_derivation_index` for getting the next unused derivation index for a keychain
 - `TxDetails` type with getters for `txid`, `sent`, `received`, `fee`, `fee_rate`, `balance_delta_sat`, `chain_position`, and `tx`
+- Block-by-block processing with events ([#20](https://github.com/bitcoindevkit/bdk-wasm/issues/20)):
+  - `Wallet::apply_block_events` for applying a block and connecting via `prev_blockhash`, returns `WalletEvent`s
+  - `Wallet::apply_block_connected_to_events` for applying a block with explicit chain connection point, returns `WalletEvent`s
+  - `Wallet::apply_evicted_txs` for marking unconfirmed transactions as evicted from the mempool
+  - `Wallet::checkpoints` for listing all checkpoints in the wallet's internal chain
+- `Block` type with `from_bytes()` deserialization and accessors (`block_hash`, `prev_blockhash`, `time`, `txdata`, `tx_count`)
+- `BlockId` constructor from height and hash string
+- `EvictedTx` type for pairing a transaction ID with an eviction timestamp
+- `BdkErrorCode::CannotConnect` and `BdkErrorCode::UnexpectedConnectedToHash` error codes for block application errors
 
 ## [0.3.0] - 2026-03-16
 

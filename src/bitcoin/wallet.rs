@@ -10,13 +10,16 @@ use crate::{
     bitcoin::WalletTx,
     result::JsResult,
     types::{
-        AddressInfo, Amount, Balance, ChangeSet, CheckPoint, FeeRate, FullScanRequest, KeychainKind, LocalOutput,
-        Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest, Transaction,
-        TxDetails, TxOut, Txid, Update, WalletEvent,
+        AddressInfo, Amount, Balance, Block, ChangeSet, CheckPoint, EvictedTx, FeeRate, FullScanRequest, KeychainKind,
+        LocalOutput, Network, NetworkKind, OutPoint, Psbt, ScriptBuf, SentAndReceived, SpkIndexed, SyncRequest,
+        Transaction, TxDetails, TxOut, Txid, Update, WalletEvent,
     },
 };
 
 use super::{TxBuilder, UnconfirmedTx};
+
+use crate::types::{BdkError, BdkErrorCode, BlockId};
+use bdk_wallet::chain::local_chain::{ApplyHeaderError, CannotConnectError};
 
 // We wrap a `BdkWallet` in `Rc<RefCell<...>>` because `wasm_bindgen` do not
 // support Rust's lifetimes. This allows us to forward a reference to the
@@ -313,6 +316,65 @@ impl Wallet {
             .borrow_mut()
             .apply_unconfirmed_txs(unconfirmed_txs.into_iter().map(Into::into))
     }
+
+    /// Apply a block to the wallet, connecting it via its `prev_blockhash`.
+    ///
+    /// This is a convenience method that introduces a `Block` at the given `height`
+    /// and connects it to the chain using the block's `prev_blockhash` header field.
+    ///
+    /// Returns a list of `WalletEvent`s describing what changed (new transactions,
+    /// confirmations, etc.).
+    pub fn apply_block_events(&self, block: &Block, height: u32) -> Result<Vec<WalletEvent>, BdkError> {
+        let events = self
+            .0
+            .borrow_mut()
+            .apply_block_events(block, height)
+            .map_err(BdkError::from)?;
+        Ok(events.into_iter().map(WalletEvent::from).collect())
+    }
+
+    /// Apply a block to the wallet, explicitly specifying the connection point.
+    ///
+    /// The `connected_to` parameter tells the wallet how this block connects to the
+    /// internal chain. Use this when you have explicit knowledge of the chain topology,
+    /// e.g. when processing blocks out of order or from a specific fork.
+    ///
+    /// Returns a list of `WalletEvent`s describing what changed.
+    pub fn apply_block_connected_to_events(
+        &self,
+        block: &Block,
+        height: u32,
+        connected_to: BlockId,
+    ) -> Result<Vec<WalletEvent>, BdkError> {
+        let events = self
+            .0
+            .borrow_mut()
+            .apply_block_connected_to_events(block, height, connected_to.into())
+            .map_err(BdkError::from)?;
+        Ok(events.into_iter().map(WalletEvent::from).collect())
+    }
+
+    /// Mark unconfirmed transactions as evicted from the mempool.
+    ///
+    /// Evicted transactions are no longer considered canonical and won't appear in
+    /// `transactions()`. This is useful when a blockchain backend reports that certain
+    /// transactions have been dropped (e.g. due to low fees or conflicts).
+    ///
+    /// Only unconfirmed, canonical transactions are affected. An evicted transaction
+    /// can become canonical again if it is later observed on-chain or in the mempool
+    /// with higher priority.
+    pub fn apply_evicted_txs(&self, evicted_txs: Vec<EvictedTx>) {
+        self.0
+            .borrow_mut()
+            .apply_evicted_txs(evicted_txs.into_iter().map(|e| (e.txid, e.evicted_at)));
+    }
+
+    /// List all checkpoints in the wallet's internal chain, ordered by height.
+    ///
+    /// Returns an array of `CheckPoint`s representing the wallet's view of the blockchain.
+    pub fn checkpoints(&self) -> Vec<CheckPoint> {
+        self.0.borrow().checkpoints().map(Into::into).collect()
+    }
 }
 
 /// Options for signing a PSBT.
@@ -404,5 +466,21 @@ impl From<SignOptions> for BdkSignOptions {
 impl Default for SignOptions {
     fn default() -> Self {
         Self::new()
+    }
+}
+
+impl From<CannotConnectError> for BdkError {
+    fn from(e: CannotConnectError) -> Self {
+        BdkError::new(BdkErrorCode::CannotConnect, e.to_string(), ())
+    }
+}
+
+impl From<ApplyHeaderError> for BdkError {
+    fn from(e: ApplyHeaderError) -> Self {
+        use ApplyHeaderError::*;
+        match &e {
+            InconsistentBlocks => BdkError::new(BdkErrorCode::UnexpectedConnectedToHash, e.to_string(), ()),
+            CannotConnect(inner) => BdkError::new(BdkErrorCode::CannotConnect, inner.to_string(), ()),
+        }
     }
 }
