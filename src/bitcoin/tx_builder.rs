@@ -1,6 +1,7 @@
 use std::{cell::RefCell, rc::Rc};
 
 use bdk_wallet::{
+    bitcoin::script::PushBytesBuf,
     error::{BuildFeeBumpError, CreateTxError},
     AddUtxoError, ChangeSpendPolicy as BdkChangeSpendPolicy, TxOrdering as BdkTxOrdering, Wallet as BdkWallet,
 };
@@ -38,6 +39,12 @@ pub struct TxBuilder {
     only_spend_from: bool,
     nlocktime: Option<u32>,
     version: Option<i32>,
+    current_height: Option<u32>,
+    only_witness_utxo: bool,
+    include_output_redeem_witness_script: bool,
+    add_global_xpubs: bool,
+    exact_sequence: Option<u32>,
+    data: Option<Vec<u8>>,
     is_fee_bump: bool,
     fee_bump_txid: Option<bdk_wallet::bitcoin::Txid>,
 }
@@ -61,6 +68,12 @@ impl TxBuilder {
             only_spend_from: false,
             nlocktime: None,
             version: None,
+            current_height: None,
+            only_witness_utxo: false,
+            include_output_redeem_witness_script: false,
+            add_global_xpubs: false,
+            exact_sequence: None,
+            data: None,
             is_fee_bump: false,
             fee_bump_txid: None,
         }
@@ -257,6 +270,79 @@ impl TxBuilder {
         self
     }
 
+    /// Shorthand to set the change policy to [`ChangeSpendPolicy::OnlyChange`].
+    ///
+    /// This effectively only allows the wallet to spend change outputs.
+    pub fn only_spend_change(mut self) -> Self {
+        self.change_policy = Some(ChangeSpendPolicy::OnlyChange);
+        self
+    }
+
+    /// Set the current blockchain height.
+    ///
+    /// This will be used to:
+    /// 1. Set the nLockTime for preventing fee sniping.
+    ///    **Note**: This will be ignored if you manually specify a locktime using [`nlocktime`](Self::nlocktime).
+    /// 2. Decide whether coinbase outputs are mature or not. If the coinbase outputs are not
+    ///    mature at spending height (`current_height + 1`), they are ignored in coin selection.
+    ///    To spend immature coinbase inputs, manually add them using [`add_utxo`](Self::add_utxo).
+    ///
+    /// If not provided, the last sync height is used.
+    pub fn current_height(mut self, height: u32) -> Self {
+        self.current_height = Some(height);
+        self
+    }
+
+    /// Only fill in the `witness_utxo` field in PSBT inputs, and remove the `non_witness_utxo`.
+    ///
+    /// This reduces the PSBT size and is acceptable for segwit-only wallets. Some hardware
+    /// wallets may prefer or require this.
+    pub fn only_witness_utxo(mut self) -> Self {
+        self.only_witness_utxo = true;
+        self
+    }
+
+    /// Fill in the `redeem_script` and `witness_script` fields of PSBT outputs.
+    ///
+    /// This is useful for signers that always require these fields, such as ColdCard
+    /// and BitBox hardware wallets.
+    pub fn include_output_redeem_witness_script(mut self) -> Self {
+        self.include_output_redeem_witness_script = true;
+        self
+    }
+
+    /// Fill in the `PSBT_GLOBAL_XPUB` field with extended keys from both the external
+    /// and internal descriptors.
+    ///
+    /// This is useful for offline signers that participate in multisig. Some hardware
+    /// wallets like BitBox and ColdCard require this.
+    pub fn add_global_xpubs(mut self) -> Self {
+        self.add_global_xpubs = true;
+        self
+    }
+
+    /// Set the exact nSequence value for all transaction inputs.
+    ///
+    /// This can be used for fine-grained control over time-lock behavior (BIP 68),
+    /// Replace-By-Fee signaling, and other sequence-dependent features.
+    pub fn set_exact_sequence(mut self, n_sequence: u32) -> Self {
+        self.exact_sequence = Some(n_sequence);
+        self
+    }
+
+    /// Add an OP_RETURN output with arbitrary data to the transaction.
+    ///
+    /// The data is embedded in an `OP_RETURN` output with a zero-value amount.
+    /// This is commonly used for timestamping, anchoring data on-chain, or
+    /// protocol-specific metadata (e.g. Omni, OpenTimestamps).
+    ///
+    /// The data must be at most 80 bytes (the standard OP_RETURN limit).
+    /// If the data exceeds 80 bytes, the error will occur when calling `finish()`.
+    pub fn add_data(mut self, data: &[u8]) -> Self {
+        self.data = Some(data.to_vec());
+        self
+    }
+
     /// Finish building the transaction.
     ///
     /// Returns a new [`Psbt`] per [`BIP174`].
@@ -280,6 +366,18 @@ impl TxBuilder {
 
             // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
             // No explicit enable_rbf call needed.
+
+            if self.only_witness_utxo {
+                builder.only_witness_utxo();
+            }
+
+            if self.include_output_redeem_witness_script {
+                builder.include_output_redeem_witness_script();
+            }
+
+            if self.add_global_xpubs {
+                builder.add_global_xpubs();
+            }
 
             let psbt = builder.finish()?;
             return Ok(psbt.into());
@@ -336,6 +434,44 @@ impl TxBuilder {
 
         if let Some(version) = self.version {
             builder.version(version);
+        }
+
+        if let Some(height) = self.current_height {
+            builder.current_height(height);
+        }
+
+        if self.only_witness_utxo {
+            builder.only_witness_utxo();
+        }
+
+        if self.include_output_redeem_witness_script {
+            builder.include_output_redeem_witness_script();
+        }
+
+        if self.add_global_xpubs {
+            builder.add_global_xpubs();
+        }
+
+        if let Some(n_sequence) = self.exact_sequence {
+            builder.set_exact_sequence(bdk_wallet::bitcoin::Sequence(n_sequence));
+        }
+
+        if let Some(data) = &self.data {
+            if data.len() > 80 {
+                return Err(BdkError::new(
+                    BdkErrorCode::Unexpected,
+                    format!("OP_RETURN data exceeds 80 bytes (got {})", data.len()),
+                    (),
+                ));
+            }
+            let push_bytes = PushBytesBuf::try_from(data.clone()).map_err(|_| {
+                BdkError::new(
+                    BdkErrorCode::Unexpected,
+                    "OP_RETURN data exceeds script push limit".to_string(),
+                    (),
+                )
+            })?;
+            builder.add_data(&push_bytes);
         }
 
         let psbt = builder.finish()?;

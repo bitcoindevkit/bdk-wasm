@@ -25,6 +25,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 - `BlockId` constructor from height and hash string
 - `EvictedTx` type for pairing a transaction ID with an eviction timestamp
 - `BdkErrorCode::CannotConnect` and `BdkErrorCode::UnexpectedConnectedToHash` error codes for block application errors
+- Expand TxBuilder API for hardware wallet support and advanced transaction construction ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
+  - `TxBuilder::add_data` for embedding OP_RETURN data in transactions (up to 80 bytes)
+  - `TxBuilder::only_spend_change` shorthand for `ChangeSpendPolicy::OnlyChange`
+  - `TxBuilder::current_height` for coinbase maturity checks and anti-fee-sniping locktime
+  - `TxBuilder::only_witness_utxo` to reduce PSBT size for segwit-only wallets
+  - `TxBuilder::include_output_redeem_witness_script` for ColdCard/BitBox hardware wallet compatibility
+  - `TxBuilder::add_global_xpubs` for multisig hardware wallet workflows
+  - `TxBuilder::set_exact_sequence` for fine-grained nSequence control
+- `TxIn::sequence` getter for reading the nSequence value of transaction inputs
 
 ## [0.3.0] - 2026-03-16
 

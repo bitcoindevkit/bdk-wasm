@@ -53,6 +53,15 @@ impl TxIn {
         self.0.total_size()
     }
 
+    /// The sequence number, which suggests to miners which of two
+    /// conflicting transactions should be preferred, or 0xFFFFFFFF
+    /// to ignore this feature. This is generally never used since
+    /// the miner behaviour cannot be enforced.
+    #[wasm_bindgen(getter)]
+    pub fn sequence(&self) -> u32 {
+        self.0.sequence.0
+    }
+
     /// Returns true if this input enables the [`absolute::LockTime`] (aka `nLockTime`) of its
     /// [`Transaction`].
     ///

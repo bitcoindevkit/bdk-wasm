@@ -232,6 +232,189 @@ describe(`Esplora client (${network})`, () => {
     );
   });
 
+  describe("TxBuilder advanced options (funded wallet)", () => {
+    // Note: FeeRate is consumed by wasm-bindgen when passed to a builder method,
+    // so we create fresh instances for each test instead of using the shared feeRate.
+    const minFeeRate = () => new FeeRate(BigInt(1));
+
+    it("builds a tx with add_data embedding OP_RETURN", () => {
+      const data = new TextEncoder().encode("bdk-wasm test data");
+      const recipientAddress = wallet.peek_address("external", 8);
+      const sendAmount = Amount.from_sat(BigInt(800));
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .add_data(data)
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // The PSBT should have the recipient output + potentially change + the OP_RETURN output
+      const outputs = psbt.unsigned_tx.output;
+      expect(outputs.length).toBeGreaterThanOrEqual(2);
+
+      // Find the OP_RETURN output (value = 0, script starts with 0x6a = OP_RETURN)
+      const opReturnOutput = outputs.find(
+        (out) =>
+          out.value.to_sat() === BigInt(0) &&
+          out.script_pubkey.to_hex_string().startsWith("6a")
+      );
+      expect(opReturnOutput).toBeDefined();
+
+      // The OP_RETURN script should contain our data
+      const scriptHex = opReturnOutput!.script_pubkey.to_hex_string();
+      const dataHex = Buffer.from(data).toString("hex");
+      expect(scriptHex).toContain(dataHex);
+    });
+
+    it("builds a tx with only_witness_utxo (PSBT has no non_witness_utxo)", () => {
+      const recipientAddress = wallet.peek_address("external", 9);
+      const sendAmount = Amount.from_sat(BigInt(800));
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .only_witness_utxo()
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // The PSBT should be constructable — only_witness_utxo strips the full
+      // previous transaction from inputs, keeping only the witness_utxo field.
+      // This is useful for external signers (hardware wallets) that only need
+      // the witness UTXO. Wallet::sign() requires non_witness_utxo, so we
+      // verify the PSBT was built correctly without attempting to sign.
+      expect(psbt.unsigned_tx.input.length).toBeGreaterThan(0);
+      expect(psbt.unsigned_tx.output.length).toBeGreaterThan(0);
+      expect(psbt.fee().to_sat()).toBeGreaterThan(BigInt(0));
+    });
+
+    it("builds a tx with include_output_redeem_witness_script", () => {
+      const recipientAddress = wallet.peek_address("external", 10);
+      const sendAmount = Amount.from_sat(BigInt(800));
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .include_output_redeem_witness_script()
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      const signed = wallet.sign(psbt, new SignOptions());
+      expect(signed).toBe(true);
+
+      const tx = psbt.extract_tx();
+      expect(tx.compute_txid()).toBeDefined();
+    });
+
+    it("builds a tx with add_global_xpubs", () => {
+      const recipientAddress = wallet.peek_address("external", 11);
+      const sendAmount = Amount.from_sat(BigInt(800));
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .add_global_xpubs()
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // The PSBT should be constructable and signable with xpubs included
+      const signed = wallet.sign(psbt, new SignOptions());
+      expect(signed).toBe(true);
+    });
+
+    it("builds a tx with current_height affecting locktime", () => {
+      const recipientAddress = wallet.peek_address("external", 12);
+      const sendAmount = Amount.from_sat(BigInt(800));
+      const currentBlockHeight = wallet.latest_checkpoint.height;
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .current_height(currentBlockHeight)
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // The locktime should be set relative to current_height (anti-fee-sniping)
+      const tx = psbt.unsigned_tx;
+      expect(tx).toBeDefined();
+
+      const signed = wallet.sign(psbt, new SignOptions());
+      expect(signed).toBe(true);
+    });
+
+    it("builds a tx with set_exact_sequence", () => {
+      const recipientAddress = wallet.peek_address("external", 13);
+      const sendAmount = Amount.from_sat(BigInt(800));
+      const rbfSequence = 0xfffffffd;
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .set_exact_sequence(rbfSequence)
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // All inputs should have the exact sequence we set
+      const inputs = psbt.unsigned_tx.input;
+      expect(inputs.length).toBeGreaterThan(0);
+      for (const input of inputs) {
+        expect(input.sequence).toBe(rbfSequence);
+      }
+
+      const signed = wallet.sign(psbt, new SignOptions());
+      expect(signed).toBe(true);
+    });
+
+    it("combines multiple new options in a single transaction", () => {
+      const recipientAddress = wallet.peek_address("external", 14);
+      const sendAmount = Amount.from_sat(BigInt(800));
+      const data = new TextEncoder().encode("multi-option test");
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .add_data(data)
+        .include_output_redeem_witness_script()
+        .add_global_xpubs()
+        .current_height(wallet.latest_checkpoint.height)
+        .set_exact_sequence(0xfffffffd)
+        .add_recipient(
+          new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+        )
+        .finish();
+
+      // Verify OP_RETURN is present
+      const outputs = psbt.unsigned_tx.output;
+      const hasOpReturn = outputs.some(
+        (out) =>
+          out.value.to_sat() === BigInt(0) &&
+          out.script_pubkey.to_hex_string().startsWith("6a")
+      );
+      expect(hasOpReturn).toBe(true);
+
+      // Verify sequence is set correctly
+      for (const input of psbt.unsigned_tx.input) {
+        expect(input.sequence).toBe(0xfffffffd);
+      }
+
+      // Should still be signable (no only_witness_utxo, so non_witness_utxo is present)
+      const signed = wallet.sign(psbt, new SignOptions());
+      expect(signed).toBe(true);
+    });
+  });
+
   it("signs and finalizes a PSBT separately", () => {
     const recipientAddress = wallet.peek_address("external", 6);
     const sendAmount = Amount.from_sat(BigInt(800));

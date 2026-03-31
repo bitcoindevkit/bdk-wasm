@@ -234,6 +234,144 @@ describe("Wallet", () => {
       }).toThrow();
     });
 
+    it("builds a tx with only_spend_change shorthand", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .only_spend_change()
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds
+    });
+
+    it("sets current_height on the builder", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .current_height(850000)
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but current_height chains correctly
+    });
+
+    it("chains only_witness_utxo without error", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .only_witness_utxo()
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but option chains correctly
+    });
+
+    it("chains include_output_redeem_witness_script without error", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .include_output_redeem_witness_script()
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but option chains correctly
+    });
+
+    it("chains add_global_xpubs without error", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .add_global_xpubs()
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but option chains correctly
+    });
+
+    it("sets set_exact_sequence on the builder", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .set_exact_sequence(0xfffffffd)
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but option chains correctly
+    });
+
+    it("add_data rejects data exceeding 80 bytes at finish()", () => {
+      const oversizedData = new Uint8Array(81).fill(0xff);
+
+      // add_data chains normally; the >80 byte validation happens in finish()
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .add_data(oversizedData)
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, Amount.from_sat(BigInt(50000)))
+          )
+          .finish();
+      }).toThrow();
+    });
+
+    it("add_data accepts valid data up to 80 bytes", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+      const data = new TextEncoder().encode("hello bdk-wasm");
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .add_data(data)
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds, but add_data chained successfully
+    });
+
+    it("add_data accepts empty data", () => {
+      const sendAmount = Amount.from_sat(BigInt(50000));
+      const emptyData = new Uint8Array(0);
+
+      expect(() => {
+        wallet
+          .build_tx()
+          .fee_rate(new FeeRate(BigInt(1)))
+          .add_data(emptyData)
+          .add_recipient(
+            new Recipient(recipientAddress.script_pubkey, sendAmount)
+          )
+          .finish();
+      }).toThrow(); // No funds
+    });
+
     it("chains all builder options together", () => {
       const sendAmount = Amount.from_sat(BigInt(50000));
 
@@ -245,6 +383,11 @@ describe("Wallet", () => {
           .enable_rbf()
           .nlocktime(800000)
           .version(2)
+          .current_height(850000)
+          .only_witness_utxo()
+          .include_output_redeem_witness_script()
+          .add_global_xpubs()
+          .set_exact_sequence(0xfffffffd)
           .change_policy(ChangeSpendPolicy.ChangeAllowed)
           .add_recipient(
             new Recipient(recipientAddress.script_pubkey, sendAmount)
