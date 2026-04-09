@@ -139,6 +139,26 @@ describe(`Esplora client (${network})`, () => {
     expect(wallet.latest_checkpoint.height).toBeGreaterThan(0);
   }, 30000);
 
+  it("lists scanned outputs and resolves known UTXOs", () => {
+    const utxos = wallet.list_unspent();
+
+    expect(utxos.length).toBeGreaterThan(0);
+
+    const firstUtxo = utxos[0];
+    const resolved = wallet.get_utxo(firstUtxo.outpoint);
+
+    expect(resolved).toBeDefined();
+    expect(resolved!.outpoint.toString()).toBe(firstUtxo.outpoint.toString());
+    expect(resolved!.derivation_index).toBe(firstUtxo.derivation_index);
+    expect(resolved!.txout.value.to_sat()).toBe(firstUtxo.txout.value.to_sat());
+    expect(wallet.is_mine(firstUtxo.txout.script_pubkey)).toBe(true);
+    expect(
+      wallet
+        .list_output()
+        .some((output) => output.outpoint.toString() === firstUtxo.outpoint.toString())
+    ).toBe(true);
+  });
+
   it("fetches fee estimates", async () => {
     const confirmationTarget = 2;
     const feeEstimates = await esploraClient.get_fee_estimates();
@@ -229,6 +249,35 @@ describe(`Esplora client (${network})`, () => {
     expect(details!.tx).toBeDefined();
     expect(details!.tx.compute_txid().toString()).toBe(
       walletTx.txid.toString()
+    );
+  });
+
+  it("calculates fee and fee rate for signed wallet transactions", () => {
+    const recipientAddress = wallet.peek_address("external", 15);
+    const sendAmount = Amount.from_sat(BigInt(800));
+
+    const psbt = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .add_recipient(
+        new Recipient(recipientAddress.address.script_pubkey, sendAmount)
+      )
+      .finish();
+
+    const expectedFee = psbt.fee().to_sat();
+
+    expect(wallet.sign(psbt, new SignOptions())).toBe(true);
+
+    const expectedFeeRate = psbt.fee_rate();
+    expect(expectedFeeRate).toBeDefined();
+
+    const tx = psbt.extract_tx();
+    const calculatedFee = wallet.calculate_fee(tx);
+    const calculatedFeeRate = wallet.calculate_fee_rate(tx);
+
+    expect(calculatedFee.to_sat()).toBe(expectedFee);
+    expect(calculatedFeeRate.to_sat_per_vb_ceil()).toBe(
+      expectedFeeRate!.to_sat_per_vb_ceil()
     );
   });
 
