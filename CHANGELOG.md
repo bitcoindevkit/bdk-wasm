@@ -38,6 +38,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 
 - Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, and fee calculation APIs ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
+- Audit and refresh Rust and Node development dependencies to their latest compatible releases ([#24](https://github.com/bitcoindevkit/bdk-wasm/issues/24))
+
+### Dependencies
+
+- Rust: `bdk_esplora` 0.22.1 → 0.22.2, `wasm-bindgen` 0.2.114 → 0.2.117, `wasm-bindgen-futures` 0.4.64 → 0.4.67, `web-sys` 0.3.91 → 0.3.94, `wasm-bindgen-test` 0.3.64 → 0.3.67
+- Node tests: `eslint` 10.0.2 → 10.2.0, `eslint-plugin-jest` 29.15.0 → 29.15.1, `globals` 17.3.0 → 17.4.0, `jest` 30.2.0 → 30.3.0, `ts-jest` 29.4.6 → 29.4.9, `typescript-eslint` 8.56.1 → 8.58.1
 
 ## [0.3.0] - 2026-03-16
 
