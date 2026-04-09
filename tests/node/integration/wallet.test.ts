@@ -73,15 +73,50 @@ describe("Wallet", () => {
 
   it("marks and unmarks addresses as used", () => {
     const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+    freshWallet.reveal_addresses_to("external", 2);
+
+    expect(
+      freshWallet.list_unused_addresses("external").map((address) => address.index)
+    ).toEqual([0, 1, 2]);
 
     // mark_used returns whether the index was present in unused set
-    const marked = freshWallet.mark_used("external", 0);
-    // The first address should have been in the unused set
-    expect(typeof marked).toBe("boolean");
+    const marked = freshWallet.mark_used("external", 1);
+    expect(marked).toBe(true);
+    expect(
+      freshWallet.list_unused_addresses("external").map((address) => address.index)
+    ).toEqual([0, 2]);
 
     // unmark_used returns whether the index was inserted back
-    const unmarked = freshWallet.unmark_used("external", 0);
-    expect(typeof unmarked).toBe("boolean");
+    const unmarked = freshWallet.unmark_used("external", 1);
+    expect(unmarked).toBe(true);
+    expect(
+      freshWallet.list_unused_addresses("external").map((address) => address.index)
+    ).toEqual([0, 1, 2]);
+  });
+
+  it("reveals address ranges and advances the next derivation index", () => {
+    const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+
+    const revealed = freshWallet.reveal_addresses_to("external", 2);
+
+    expect(revealed.map((address) => address.index)).toEqual([0, 1, 2]);
+    expect(revealed.map((address) => address.keychain)).toEqual([
+      "external",
+      "external",
+      "external",
+    ]);
+    expect(freshWallet.next_derivation_index("external")).toBe(3);
+    expect(
+      freshWallet.list_unused_addresses("external").map((address) => address.index)
+    ).toEqual([0, 1, 2]);
+  });
+
+  it("detects wallet-owned scripts", () => {
+    const freshWallet = Wallet.create(network, externalDesc, internalDesc);
+    const ownAddress = freshWallet.reveal_next_address("external");
+
+    expect(freshWallet.is_mine(ownAddress.address.script_pubkey)).toBe(true);
+    expect(freshWallet.is_mine(recipientAddress.script_pubkey)).toBe(false);
   });
 
   describe("TxBuilder options", () => {
