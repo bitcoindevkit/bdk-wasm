@@ -35,6 +35,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
   - `TxBuilder::set_exact_sequence` for fine-grained nSequence control
 - `TxIn::sequence` getter for reading the nSequence value of transaction inputs
 
+### Changed
+
+- Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, and fee calculation APIs ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
+
 ## [0.3.0] - 2026-03-16
 
 ### Added
