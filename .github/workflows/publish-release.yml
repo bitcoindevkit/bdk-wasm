@@ -17,7 +17,22 @@ jobs:
         with:
           toolchain: stable
       - name: Install wasm-pack
-        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+        run: |
+          wasm_pack_url="https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz"
+          archive="/tmp/wasm-pack.tar.gz"
+
+          for attempt in 1 2 3 4 5; do
+            if curl --fail --location --retry 5 --retry-all-errors --retry-delay 2 --retry-connrefused --output "$archive" "$wasm_pack_url"; then
+              tar xzf "$archive" -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+              exit 0
+            fi
+
+            echo "wasm-pack download failed on attempt $attempt/5"
+            sleep 5
+          done
+
+          echo "Failed to download wasm-pack after multiple attempts"
+          exit 1
       - name: Install jq
         run: sudo apt-get update -y && sudo apt-get install -y jq
       - name: Rust Cache
