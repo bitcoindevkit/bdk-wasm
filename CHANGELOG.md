@@ -9,6 +9,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 
+- Add an `examples/` directory with browser (Vite), Node.js, and Next.js
+  tutorials, plus README links for quicker onboarding
+  ([#23](https://github.com/bitcoindevkit/bdk-wasm/issues/23))
 - Expand Wallet API surface ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
   - `Wallet::finalize_psbt` for finalizing PSBTs (adding finalized script/witness to inputs)
   - `Wallet::cancel_tx` for releasing reserved change addresses when a transaction won't be broadcast

@@ -51,6 +51,21 @@ yarn add @bitcoindevkit/bdk-wallet-web
 yarn add @bitcoindevkit/bdk-wallet-node
 ```
 
+## Examples and tutorials
+
+The repository now includes ready-to-copy example projects under
+[`examples/`](./examples/):
+
+- [`examples/browser-vite`](./examples/browser-vite) — vanilla JavaScript +
+  Vite browser example using `@bitcoindevkit/bdk-wallet-web`
+- [`examples/node-wallet`](./examples/node-wallet) — Node.js example that
+  creates a wallet, syncs with Esplora, signs a PSBT, and broadcasts a
+  self-send transaction
+- [`examples/nextjs`](./examples/nextjs) — Next.js client-side integration
+  example for `@bitcoindevkit/bdk-wallet-web`
+- [`examples/README.md`](./examples/README.md) — overview, safety notes, and
+  when to use each example
+
 ## Notes on WASM Specific Considerations
 
 > [!WARNING]
