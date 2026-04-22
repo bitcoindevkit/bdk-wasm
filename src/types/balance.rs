@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::Balance as BdkBalance;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -9,6 +7,8 @@ use super::Amount;
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct Balance(BdkBalance);
+
+impl_inner_wrapper!(Balance, BdkBalance);
 
 #[wasm_bindgen]
 impl Balance {
@@ -49,19 +49,5 @@ impl Balance {
     #[wasm_bindgen(getter)]
     pub fn total(&self) -> Amount {
         self.0.total().into()
-    }
-}
-
-impl Deref for Balance {
-    type Target = BdkBalance;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkBalance> for Balance {
-    fn from(inner: BdkBalance) -> Self {
-        Balance(inner)
     }
 }

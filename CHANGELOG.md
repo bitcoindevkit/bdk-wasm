@@ -39,6 +39,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 - Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, and fee calculation APIs ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
 - Audit and refresh Rust and Node development dependencies to their latest compatible releases ([#24](https://github.com/bitcoindevkit/bdk-wasm/issues/24))
+- Prototype a declarative macro for tuple-wrapper `Deref`/`From` boilerplate while keeping `wasm_bindgen` getters explicit ([#25](https://github.com/bitcoindevkit/bdk-wasm/issues/25))
 
 ### Dependencies
 

@@ -1,4 +1,4 @@
-use std::{ops::Deref, str::FromStr};
+use std::str::FromStr;
 use wasm_bindgen::prelude::wasm_bindgen;
 use wasm_bindgen::JsError;
 
@@ -16,13 +16,7 @@ use super::{TxIn, TxOut};
 #[derive(Clone)]
 pub struct Transaction(BdkTransaction);
 
-impl Deref for Transaction {
-    type Target = BdkTransaction;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(Transaction, BdkTransaction, into_inner);
 
 #[wasm_bindgen]
 impl Transaction {
@@ -144,30 +138,12 @@ impl Transaction {
     }
 }
 
-impl From<BdkTransaction> for Transaction {
-    fn from(inner: BdkTransaction) -> Self {
-        Transaction(inner)
-    }
-}
-
-impl From<Transaction> for BdkTransaction {
-    fn from(tx: Transaction) -> Self {
-        tx.0
-    }
-}
-
 /// A bitcoin transaction hash/transaction ID.
 #[wasm_bindgen]
 #[derive(Clone, Copy)]
 pub struct Txid(BdkTxid);
 
-impl Deref for Txid {
-    type Target = BdkTxid;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(Txid, BdkTxid, into_inner);
 
 #[wasm_bindgen]
 impl Txid {
@@ -180,17 +156,5 @@ impl Txid {
     #[wasm_bindgen(js_name = toString)]
     pub fn to_string(&self) -> String {
         self.0.to_string()
-    }
-}
-
-impl From<BdkTxid> for Txid {
-    fn from(inner: BdkTxid) -> Self {
-        Txid(inner)
-    }
-}
-
-impl From<Txid> for BdkTxid {
-    fn from(txid: Txid) -> Self {
-        txid.0
     }
 }

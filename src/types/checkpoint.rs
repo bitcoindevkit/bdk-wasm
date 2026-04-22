@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::chain::CheckPoint as BdkCheckPoint;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -12,6 +10,8 @@ use super::BlockId;
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct CheckPoint(BdkCheckPoint);
+
+impl_inner_wrapper!(CheckPoint, BdkCheckPoint);
 
 #[wasm_bindgen]
 impl CheckPoint {
@@ -44,19 +44,5 @@ impl CheckPoint {
     /// Returns `None` if checkpoint at `height` does not exist.
     pub fn get(&self, height: u32) -> Option<Self> {
         self.0.get(height).map(Into::into)
-    }
-}
-
-impl Deref for CheckPoint {
-    type Target = BdkCheckPoint;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkCheckPoint> for CheckPoint {
-    fn from(inner: BdkCheckPoint) -> Self {
-        CheckPoint(inner)
     }
 }

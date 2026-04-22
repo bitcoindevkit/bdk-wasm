@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::{
     chain::Merge,
     serde_json::{from_str, to_string},
@@ -13,6 +11,8 @@ use crate::result::JsResult;
 #[wasm_bindgen]
 #[derive(PartialEq)]
 pub struct ChangeSet(BdkChangeSet);
+
+impl_inner_wrapper!(ChangeSet, BdkChangeSet, into_inner);
 
 #[wasm_bindgen]
 impl ChangeSet {
@@ -33,25 +33,5 @@ impl ChangeSet {
     /// Create a new `ChangeSet` from a JSON string.
     pub fn from_json(val: &str) -> JsResult<ChangeSet> {
         Ok(ChangeSet(from_str(val)?))
-    }
-}
-
-impl Deref for ChangeSet {
-    type Target = BdkChangeSet;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkChangeSet> for ChangeSet {
-    fn from(inner: BdkChangeSet) -> Self {
-        ChangeSet(inner)
-    }
-}
-
-impl From<ChangeSet> for BdkChangeSet {
-    fn from(changeset: ChangeSet) -> Self {
-        changeset.0
     }
 }

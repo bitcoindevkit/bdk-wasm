@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::{
     chain::{
         spk_client::{
@@ -21,25 +19,7 @@ use super::{ConfirmationBlockTime, Txid};
 #[wasm_bindgen]
 pub struct SyncRequest(BdkSyncRequest<(KeychainKind, u32)>);
 
-impl Deref for SyncRequest {
-    type Target = BdkSyncRequest<(KeychainKind, u32)>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkSyncRequest<(KeychainKind, u32)>> for SyncRequest {
-    fn from(inner: BdkSyncRequest<(KeychainKind, u32)>) -> Self {
-        SyncRequest(inner)
-    }
-}
-
-impl From<SyncRequest> for BdkSyncRequest<(KeychainKind, u32)> {
-    fn from(request: SyncRequest) -> Self {
-        request.0
-    }
-}
+impl_inner_wrapper!(SyncRequest, BdkSyncRequest<(KeychainKind, u32)>, into_inner);
 
 /// Data required to perform a spk-based blockchain client full scan.
 ///
@@ -50,50 +30,14 @@ impl From<SyncRequest> for BdkSyncRequest<(KeychainKind, u32)> {
 #[wasm_bindgen]
 pub struct FullScanRequest(BdkFullScanRequest<KeychainKind>);
 
-impl Deref for FullScanRequest {
-    type Target = BdkFullScanRequest<KeychainKind>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkFullScanRequest<KeychainKind>> for FullScanRequest {
-    fn from(inner: BdkFullScanRequest<KeychainKind>) -> Self {
-        FullScanRequest(inner)
-    }
-}
-
-impl From<FullScanRequest> for BdkFullScanRequest<KeychainKind> {
-    fn from(request: FullScanRequest) -> Self {
-        request.0
-    }
-}
+impl_inner_wrapper!(FullScanRequest, BdkFullScanRequest<KeychainKind>, into_inner);
 
 /// An update to [`Wallet`].
 #[wasm_bindgen]
 #[derive(Clone)]
 pub struct Update(BdkUpdate);
 
-impl Deref for Update {
-    type Target = BdkUpdate;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkUpdate> for Update {
-    fn from(inner: BdkUpdate) -> Self {
-        Update(inner)
-    }
-}
-
-impl From<Update> for BdkUpdate {
-    fn from(update: Update) -> Self {
-        update.0
-    }
-}
+impl_inner_wrapper!(Update, BdkUpdate, into_inner);
 
 impl From<BdkFullScanResponse<KeychainKind>> for Update {
     fn from(result: BdkFullScanResponse<KeychainKind>) -> Self {
@@ -111,13 +55,7 @@ impl From<BdkSyncResponse> for Update {
 #[wasm_bindgen]
 pub struct ChainPosition(BdkChainPosition<BdkConfirmationBlockTime>);
 
-impl Deref for ChainPosition {
-    type Target = BdkChainPosition<BdkConfirmationBlockTime>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(ChainPosition, BdkChainPosition<BdkConfirmationBlockTime>, into_inner);
 
 #[wasm_bindgen]
 impl ChainPosition {
@@ -187,17 +125,5 @@ impl ChainPosition {
             } => transitively.map(Into::into),
             _ => None,
         }
-    }
-}
-
-impl From<BdkChainPosition<BdkConfirmationBlockTime>> for ChainPosition {
-    fn from(inner: BdkChainPosition<BdkConfirmationBlockTime>) -> Self {
-        ChainPosition(inner)
-    }
-}
-
-impl From<ChainPosition> for BdkChainPosition<BdkConfirmationBlockTime> {
-    fn from(chain_position: ChainPosition) -> Self {
-        chain_position.0
     }
 }

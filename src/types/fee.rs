@@ -1,5 +1,5 @@
 use bdk_wallet::bitcoin::FeeRate as BdkFeeRate;
-use std::{collections::HashMap, ops::Deref};
+use std::collections::HashMap;
 
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -7,13 +7,7 @@ use wasm_bindgen::prelude::wasm_bindgen;
 #[wasm_bindgen]
 pub struct FeeEstimates(HashMap<u16, f64>);
 
-impl Deref for FeeEstimates {
-    type Target = HashMap<u16, f64>;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(FeeEstimates, HashMap<u16, f64>, into_inner);
 
 #[wasm_bindgen]
 impl FeeEstimates {
@@ -21,18 +15,6 @@ impl FeeEstimates {
     /// Available confirmation targets are 1-25, 144, 504 and 1008 blocks.
     pub fn get(&self, k: u16) -> Option<f64> {
         self.0.get(&k).copied()
-    }
-}
-
-impl From<HashMap<u16, f64>> for FeeEstimates {
-    fn from(inner: HashMap<u16, f64>) -> Self {
-        FeeEstimates(inner)
-    }
-}
-
-impl From<FeeEstimates> for HashMap<u16, f64> {
-    fn from(fee_estimates: FeeEstimates) -> Self {
-        fee_estimates.0
     }
 }
 
@@ -44,13 +26,7 @@ impl From<FeeEstimates> for HashMap<u16, f64> {
 #[derive(Clone, Copy)]
 pub struct FeeRate(BdkFeeRate);
 
-impl Deref for FeeRate {
-    type Target = BdkFeeRate;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(FeeRate, BdkFeeRate, into_inner);
 
 #[wasm_bindgen]
 impl FeeRate {
@@ -72,17 +48,5 @@ impl FeeRate {
     /// Converts to sat/vB rounding down.
     pub fn to_sat_per_vb_floor(&self) -> u64 {
         self.0.to_sat_per_vb_floor()
-    }
-}
-
-impl From<BdkFeeRate> for FeeRate {
-    fn from(inner: BdkFeeRate) -> Self {
-        FeeRate(inner)
-    }
-}
-
-impl From<FeeRate> for BdkFeeRate {
-    fn from(fee_rate: FeeRate) -> Self {
-        fee_rate.0
     }
 }

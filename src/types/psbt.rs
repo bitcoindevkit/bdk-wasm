@@ -1,5 +1,5 @@
 use bdk_wallet::serde_json::to_string;
-use std::ops::{Deref, DerefMut};
+use std::ops::DerefMut;
 use std::str::FromStr;
 
 use bdk_wallet::{
@@ -19,13 +19,7 @@ use super::{Address, Amount, FeeRate, Transaction};
 #[derive(Clone)]
 pub struct Psbt(BdkPsbt);
 
-impl Deref for Psbt {
-    type Target = BdkPsbt;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(Psbt, BdkPsbt, into_inner);
 
 impl DerefMut for Psbt {
     fn deref_mut(&mut self) -> &mut Self::Target {
@@ -119,18 +113,6 @@ impl Psbt {
     #[wasm_bindgen(js_name = clone)]
     pub fn js_clone(&self) -> Psbt {
         self.clone()
-    }
-}
-
-impl From<BdkPsbt> for Psbt {
-    fn from(inner: BdkPsbt) -> Self {
-        Psbt(inner)
-    }
-}
-
-impl From<Psbt> for BdkPsbt {
-    fn from(psbt: Psbt) -> Self {
-        psbt.0
     }
 }
 

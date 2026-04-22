@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::{
     bitcoin::{Amount as BdkAmount, Denomination as BdkDenomination},
     IsDust,
@@ -17,6 +15,8 @@ use crate::types::{BdkError, BdkErrorCode, ScriptBuf};
 #[wasm_bindgen]
 #[derive(Clone, Copy, Serialize)]
 pub struct Amount(BdkAmount);
+
+impl_inner_wrapper!(Amount, BdkAmount, into_inner);
 
 #[wasm_bindgen]
 impl Amount {
@@ -52,26 +52,6 @@ impl Amount {
     /// for a given script
     pub fn is_dust(&self, script: ScriptBuf) -> bool {
         self.0.is_dust(&script)
-    }
-}
-
-impl Deref for Amount {
-    type Target = BdkAmount;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
-
-impl From<BdkAmount> for Amount {
-    fn from(inner: BdkAmount) -> Self {
-        Amount(inner)
-    }
-}
-
-impl From<Amount> for BdkAmount {
-    fn from(amount: Amount) -> Self {
-        amount.0
     }
 }
 
