@@ -462,6 +462,109 @@ describe(`Esplora client (${network})`, () => {
       const signed = wallet.sign(psbt, new SignOptions());
       expect(signed).toBe(true);
     });
+
+    it("drains the wallet into a single target output", () => {
+      const drainTarget = wallet.peek_address("external", 30);
+      const targetScript = drainTarget.address.script_pubkey;
+
+      const psbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .drain_wallet()
+        .drain_to(targetScript)
+        .finish();
+
+      const outputs = psbt.unsigned_tx.output;
+      expect(outputs).toHaveLength(1);
+      expect(outputs[0].script_pubkey.to_hex_string()).toBe(
+        drainTarget.address.script_pubkey.to_hex_string()
+      );
+      expect(outputs[0].value.to_sat()).toBeGreaterThan(BigInt(0));
+    });
+
+    it("exclude_unconfirmed and exclude_below_confirmations ignore trusted pending coins", () => {
+      const pendingRecipient = wallet.peek_address("external", 31);
+      const pendingAmount = Amount.from_sat(BigInt(50_000));
+      const pendingPsbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .add_recipient(
+          new Recipient(
+            pendingRecipient.address.script_pubkey,
+            pendingAmount
+          )
+        )
+        .finish();
+
+      expect(wallet.sign(pendingPsbt, new SignOptions())).toBe(true);
+
+      const pendingTx = pendingPsbt.extract_tx();
+      const firstSeen = BigInt(Math.floor(Date.now() / 1000));
+      wallet.apply_unconfirmed_txs([new UnconfirmedTx(pendingTx, firstSeen)]);
+
+      const confirmed = wallet.balance.confirmed.to_sat();
+      const trustedPending = wallet.balance.trusted_pending.to_sat();
+      const trustedSpendable = wallet.balance.trusted_spendable.to_sat();
+      expect(trustedPending).toBeGreaterThan(BigInt(0));
+      expect(trustedSpendable).toBeGreaterThan(confirmed);
+
+      const pendingOnlyDelta = trustedSpendable - confirmed;
+      expect(pendingOnlyDelta).toBeGreaterThan(BigInt(2_000));
+
+      const spendAmountSats = confirmed + pendingOnlyDelta / BigInt(2);
+      const spendablePsbt = wallet
+        .build_tx()
+        .fee_rate(minFeeRate())
+        .add_recipient(
+          new Recipient(
+            wallet.peek_address("external", 32).address.script_pubkey,
+            Amount.from_sat(spendAmountSats)
+          )
+        )
+        .finish();
+
+      expect(spendablePsbt.fee().to_sat()).toBeGreaterThan(BigInt(0));
+      wallet.cancel_tx(spendablePsbt.unsigned_tx);
+
+      const expectInsufficientFunds = (build: () => void) => {
+        try {
+          build();
+          fail("expected coin selection to fail");
+        } catch (error) {
+          expect(error).toBeInstanceOf(BdkError);
+          expect((error as BdkError).code).toBe(
+            BdkErrorCode.InsufficientFunds
+          );
+        }
+      };
+
+      expectInsufficientFunds(() => {
+        wallet
+          .build_tx()
+          .fee_rate(minFeeRate())
+          .exclude_unconfirmed()
+          .add_recipient(
+            new Recipient(
+              wallet.peek_address("external", 33).address.script_pubkey,
+              Amount.from_sat(spendAmountSats)
+            )
+          )
+          .finish();
+      });
+      expectInsufficientFunds(() => {
+        wallet
+          .build_tx()
+          .fee_rate(minFeeRate())
+          .exclude_below_confirmations(1)
+          .add_recipient(
+            new Recipient(
+              wallet.peek_address("external", 34).address.script_pubkey,
+              Amount.from_sat(spendAmountSats)
+            )
+          )
+          .finish();
+      });
+    });
   });
 
   it("signs and finalizes a PSBT separately", () => {

@@ -37,7 +37,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
-- Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, and fee calculation APIs ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
+- Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, fee calculation, and TxBuilder coin-selection behavior ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
+  - Add regtest assertions for `drain_wallet` + `drain_to` producing a single drain output
+  - Add regtest assertions for `exclude_unconfirmed` and `exclude_below_confirmations(1)` ignoring trusted pending coins during coin selection
 - Audit and refresh Rust and Node development dependencies to their latest compatible releases ([#24](https://github.com/bitcoindevkit/bdk-wasm/issues/24))
 - Prototype a declarative macro for tuple-wrapper `Deref`/`From` boilerplate while keeping `wasm_bindgen` getters explicit ([#25](https://github.com/bitcoindevkit/bdk-wasm/issues/25))
 
