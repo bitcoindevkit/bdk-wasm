@@ -1,5 +1,3 @@
-use std::ops::Deref;
-
 use bdk_wallet::bitcoin::ScriptBuf as BdkScriptBuf;
 use wasm_bindgen::prelude::wasm_bindgen;
 
@@ -16,13 +14,7 @@ use crate::{
 #[derive(Clone)]
 pub struct ScriptBuf(BdkScriptBuf);
 
-impl Deref for ScriptBuf {
-    type Target = BdkScriptBuf;
-
-    fn deref(&self) -> &Self::Target {
-        &self.0
-    }
-}
+impl_inner_wrapper!(ScriptBuf, BdkScriptBuf, into_inner);
 
 #[wasm_bindgen]
 impl ScriptBuf {
@@ -72,17 +64,5 @@ impl ScriptBuf {
     /// broadcastable on today's Bitcoin network.
     pub fn minimal_non_dust_custom(&self, dust_relay_fee: FeeRate) -> Amount {
         self.0.minimal_non_dust_custom(dust_relay_fee.into()).into()
-    }
-}
-
-impl From<BdkScriptBuf> for ScriptBuf {
-    fn from(inner: BdkScriptBuf) -> Self {
-        ScriptBuf(inner)
-    }
-}
-
-impl From<ScriptBuf> for BdkScriptBuf {
-    fn from(script_buf: ScriptBuf) -> Self {
-        script_buf.0
     }
 }
