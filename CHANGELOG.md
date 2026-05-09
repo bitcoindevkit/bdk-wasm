@@ -37,6 +37,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Cache the Esplora Docker image in CI so regtest integration runs can reuse the pulled image across workflow runs ([#32](https://github.com/bitcoindevkit/bdk-wasm/issues/32))
 - Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, fee calculation, and TxBuilder coin-selection behavior ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
   - Add regtest assertions for `drain_wallet` + `drain_to` producing a single drain output
   - Add regtest assertions for `exclude_unconfirmed` and `exclude_below_confirmations(1)` ignoring trusted pending coins during coin selection
