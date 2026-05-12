@@ -85,6 +85,20 @@ jobs:
       - name: Build WASM (Node target)
         working-directory: tests/node
         run: yarn build
+      - name: Cache Esplora Docker image
+        id: cache-esplora-image
+        uses: actions/cache@cdf6c1fa76f9f475f3d7449005a359c84ca0f306 # v5.0.3
+        with:
+          path: /tmp/esplora-image.tar
+          key: esplora-docker-blockstream-esplora-${{ hashFiles('tests/docker-compose.yml') }}
+      - name: Load cached Esplora Docker image
+        if: steps.cache-esplora-image.outputs.cache-hit == 'true'
+        run: docker load --input /tmp/esplora-image.tar
+      - name: Pull and save Esplora Docker image
+        if: steps.cache-esplora-image.outputs.cache-hit != 'true'
+        run: |
+          docker pull blockstream/esplora
+          docker save blockstream/esplora --output /tmp/esplora-image.tar
       - name: Start Esplora regtest
         run: docker compose -f tests/docker-compose.yml up -d
       - name: Wait for Esplora
