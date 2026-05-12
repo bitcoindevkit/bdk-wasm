@@ -3,7 +3,8 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "build": "wasm-pack build --target nodejs --all-features",
-    "test": "jest"
+    "test": "jest",
+    "clean": "rm -rf node_modules pkg dist build coverage .cache *.log"
   },
   "devDependencies": {
     "@types/jest": "^30.0.0",
