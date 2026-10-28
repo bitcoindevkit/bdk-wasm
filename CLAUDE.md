@@ -62,12 +62,13 @@ wasm-pack test --chrome --firefox --headless --features debug,default
 wasm-pack test --chrome --firefox --headless --features debug,esplora
 ```
 
-### Node.js tests (TypeScript/Jest)
+### Node.js tests (TypeScript/Vitest)
 ```bash
 cd tests/node
 yarn install --immutable
 yarn build          # runs wasm-pack build --target nodejs --all-features
-yarn test           # runs jest
+yarn test           # runs offline Node tests
+yarn test:coverage  # covers generated JavaScript bindings; Rust/WASM is not instrumented
 yarn lint           # runs eslint
 ```
 

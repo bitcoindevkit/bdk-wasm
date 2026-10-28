@@ -38,7 +38,7 @@ sleep 10
 echo "Running regtest integration tests..."
 cd "$PROJECT_ROOT/tests/node"
 set +e
-NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --runInBand --testPathPatterns='integration/(esplora|events)'
+NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn test:integration
 TEST_EXIT_CODE=$?
 set -e
 
