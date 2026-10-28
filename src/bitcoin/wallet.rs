@@ -1,6 +1,5 @@
 use std::{cell::RefCell, rc::Rc};
 
-#[allow(deprecated)]
 use bdk_wallet::SignOptions as BdkSignOptions;
 use bdk_wallet::Wallet as BdkWallet;
 use wasm_bindgen::{prelude::wasm_bindgen, JsError};
@@ -81,6 +80,8 @@ impl Wallet {
             builder = builder.descriptor(KeychainKind::Internal.into(), internal_descriptor);
         }
 
+        // Preserve descriptor-based signing on load until the caller-owned signer API is exposed.
+        #[allow(deprecated)]
         let wallet_opt = builder.extract_keys().load_wallet_no_persist(changeset.into())?;
 
         let wallet = match wallet_opt {
@@ -197,6 +198,8 @@ impl Wallet {
     }
 
     pub fn sign(&self, psbt: &mut Psbt, options: SignOptions) -> JsResult<bool> {
+        // BDK 3.2 still delegates this to sign_with_signers with identical SignOptions.
+        #[allow(deprecated)]
         let result = self.0.borrow().sign(psbt, options.into())?;
         Ok(result)
     }
@@ -214,6 +217,8 @@ impl Wallet {
     /// The `txid` must refer to a transaction that is already in the wallet and signals RBF.
     /// Returns a `TxBuilder` pre-configured for fee bumping. You can then set the new fee rate
     /// or absolute fee and call `finish()`.
+    /// Only fee policy, ordering, dust allowance, witness-only UTXOs, and global xpub metadata
+    /// are supported; other builder settings cause `finish()` to return an error.
     pub fn build_fee_bump(&self, txid: Txid) -> JsResult<TxBuilder> {
         Ok(TxBuilder::new_fee_bump(self.0.clone(), txid.into()))
     }
@@ -283,7 +288,13 @@ impl Wallet {
     /// This frees up the change address that was reserved when creating the transaction,
     /// making it available for future transactions.
     pub fn cancel_tx(&self, tx: &Transaction) {
-        self.0.borrow_mut().cancel_tx(tx);
+        let mut wallet = self.0.borrow_mut();
+        for output in &tx.output {
+            if let Some((keychain, index)) = wallet.derivation_of_spk(output.script_pubkey.clone()) {
+                // As in BDK 2, this cannot unmark an address observed in the transaction graph.
+                wallet.unmark_used(keychain, index);
+            }
+        }
     }
 
     /// Get the descriptor checksum for the given keychain.
@@ -379,14 +390,12 @@ impl Wallet {
 
 /// Options for signing a PSBT.
 ///
-/// Note: `bdk_wallet::SignOptions` is deprecated upstream (BDK 2.2.0) in favor of
-/// `bitcoin::psbt::Psbt::sign()`. However, `Wallet::sign` still requires `SignOptions`
-/// internally, so we continue wrapping it until BDK provides a migration path.
-#[allow(deprecated)]
+/// BDK 3.2 retains `SignOptions` for `Wallet::sign_with_signers`. This wrapper
+/// preserves the descriptor-based JavaScript signing API while caller-owned
+/// signer support is developed.
 #[wasm_bindgen]
 pub struct SignOptions(BdkSignOptions);
 
-#[allow(deprecated)]
 #[wasm_bindgen]
 impl SignOptions {
     #[wasm_bindgen(constructor)]
@@ -455,14 +464,12 @@ impl SignOptions {
     }
 }
 
-#[allow(deprecated)]
 impl From<SignOptions> for BdkSignOptions {
     fn from(options: SignOptions) -> Self {
         options.0
     }
 }
 
-#[allow(deprecated)]
 impl Default for SignOptions {
     fn default() -> Self {
         Self::new()

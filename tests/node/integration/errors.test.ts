@@ -10,6 +10,7 @@ describe("Wallet", () => {
   const network: Network = "testnet";
 
   it("catches fine-grained address errors", () => {
+    expect.assertions(8);
     try {
       Address.from_string(
         "tb1qd28npep0s8frcm3y7dxqajkcy2m40eysplyr9v",
@@ -17,6 +18,7 @@ describe("Wallet", () => {
       );
     } catch (error) {
       expect(error).toBeInstanceOf(BdkError);
+      if (!(error instanceof BdkError)) throw error;
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.NetworkValidation);
@@ -28,6 +30,7 @@ describe("Wallet", () => {
       Address.from_string("notAnAddress", network);
     } catch (error) {
       expect(error).toBeInstanceOf(BdkError);
+      if (!(error instanceof BdkError)) throw error;
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.Base58);
@@ -37,10 +40,12 @@ describe("Wallet", () => {
   });
 
   it("catches fine-grained amount errors", () => {
+    expect.assertions(4);
     try {
       Amount.from_btc(-100000000);
     } catch (error) {
       expect(error).toBeInstanceOf(BdkError);
+      if (!(error instanceof BdkError)) throw error;
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.OutOfRange);

@@ -11,7 +11,7 @@
     <a href="https://www.npmjs.com/package/@bitcoindevkit/bdk-wallet-web"><img alt="NPM Package (Web)" src="https://img.shields.io/npm/v/@bitcoindevkit/bdk-wallet-web.svg"/></a>
     <a href="https://www.npmjs.com/package/@bitcoindevkit/bdk-wallet-node"><img alt="NPM Package (Node)" src="https://img.shields.io/npm/v/@bitcoindevkit/bdk-wallet-node.svg"/></a>
     <a href="https://github.com/bitcoindevkit/bdk-wasm/blob/main/LICENSE-MIT"><img alt="MIT or Apache-2.0 Licensed" src="https://img.shields.io/badge/license-MIT%2FApache--2.0-blue.svg"/></a>
-    <a href="https://blog.rust-lang.org/2024/11/28/Rust-1.83.0.html"><img alt="Rustc Version 1.83.0+" src="https://img.shields.io/badge/rustc-1.83.0%2B-lightgrey.svg"/></a>
+    <a href="https://blog.rust-lang.org/2025/06/26/Rust-1.88.0/"><img alt="Rustc Version 1.88.0+" src="https://img.shields.io/badge/rustc-1.88.0%2B-lightgrey.svg"/></a>
     <a href="https://discord.gg/d7NkDKm"><img alt="Chat on Discord" src="https://img.shields.io/discord/753336465005608961?logo=discord"></a>
   </p>
 
@@ -124,3 +124,5 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
+
+See the [dependency upgrade assessment](https://github.com/bitcoindevkit/bdk-wasm/blob/main/docs/dependency-upgrade.md) for BDK 3 compatibility, persistence migration, and remaining tooling advisories.

@@ -50,7 +50,7 @@ describe("Wallet", () => {
 
   it("loads a previously existing wallet", () => {
     const loadedWallet = Wallet.load(
-      wallet.take_staged(),
+      wallet.take_staged()!,
       externalDesc,
       internalDesc
     );
@@ -446,6 +446,7 @@ describe("Wallet", () => {
         fail("Expected an error");
       } catch (error) {
         expect(error).toBeInstanceOf(BdkError);
+      if (!(error instanceof BdkError)) throw error;
         expect((error as BdkError).code).toBe(
           BdkErrorCode.TransactionNotFound
         );
@@ -462,6 +463,7 @@ describe("Wallet", () => {
   });
 
   it("catches fine-grained errors and deserializes its data", () => {
+    expect.assertions(5);
     // Amount should be too big so we fail with InsufficientFunds
     const sendAmount = Amount.from_sat(BigInt(2000000000));
 
@@ -475,6 +477,7 @@ describe("Wallet", () => {
         .finish();
     } catch (error) {
       expect(error).toBeInstanceOf(BdkError);
+      if (!(error instanceof BdkError)) throw error;
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.InsufficientFunds);

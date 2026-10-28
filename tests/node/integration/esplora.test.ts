@@ -198,7 +198,7 @@ describe(`Esplora client (${network})`, () => {
     // Assert that we are aware of newly created addresses that were revealed during PSBT creation
     const currentDerivationIndex = wallet.derivation_index("internal");
     if (initialDerivationIndex !== undefined) {
-      expect(initialDerivationIndex).toBeLessThan(currentDerivationIndex);
+      expect(initialDerivationIndex).toBeLessThan(currentDerivationIndex!);
     } else {
       // Fresh wallet had no internal derivation index; after building a tx with change it should exist
       expect(currentDerivationIndex).toBeDefined();
@@ -207,8 +207,8 @@ describe(`Esplora client (${network})`, () => {
     // Assert that the transaction is in the wallet
     wallet.apply_unconfirmed_txs([new UnconfirmedTx(tx, unixTimestamp)]);
     const walletTx = wallet.get_tx(txid);
-    expect(walletTx.last_seen).toEqual(unixTimestamp);
-    expect(walletTx.chain_position.is_confirmed).toBe(false);
+    expect(walletTx!.last_seen).toEqual(unixTimestamp);
+    expect(walletTx!.chain_position.is_confirmed).toBe(false);
   }, 30000);
 
   it("returns tx_details for a known transaction", () => {

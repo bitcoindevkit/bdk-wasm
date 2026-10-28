@@ -17,39 +17,39 @@ jobs:
           - debug,esplora
     steps:
       - name: checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: ${{ matrix.rust }}
       - name: Install wasm-pack
-        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+        run: bash scripts/install-wasm-pack.sh
       - name: Rust Cache
-        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Build
         run: |
           if [ "${{ matrix.features }}" = "all" ]; then
-            wasm-pack build --all-features
+            wasm-pack build --all-features --locked
           else
-            wasm-pack build --features ${{ matrix.features }}
+            wasm-pack build --features ${{ matrix.features }} --locked
           fi
       - name: Test
         if: ${{ matrix.features != 'all' }}
-        run: wasm-pack test --chrome --firefox --headless --features ${{ matrix.features }}
+        run: wasm-pack test --chrome --firefox --headless --features ${{ matrix.features }} --locked
 
   build-lint-test-node:
     name: Build, Lint and test - Node
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
-        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+        run: bash scripts/install-wasm-pack.sh
       - name: Setup Node
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: yarn
           cache-dependency-path: tests/node/yarn.lock
       - name: Install
@@ -60,23 +60,23 @@ jobs:
         run: yarn lint
       - name: Test
         working-directory: tests/node
-        run: yarn build && yarn jest --testPathIgnorePatterns='integration/(esplora|events)'
+        run: yarn build && yarn typecheck && yarn jest --testPathIgnorePatterns='integration/(esplora|events)'
 
   esplora-integration:
     name: Esplora integration tests
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
-        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+        run: bash scripts/install-wasm-pack.sh
       - name: Rust Cache
-        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Setup Node
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: yarn
           cache-dependency-path: tests/node/yarn.lock
       - name: Install dependencies
@@ -116,17 +116,17 @@ jobs:
     if: github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Enable Corepack
         run: corepack enable
       - name: Install wasm-pack
-        run: curl -sSfL https://github.com/rustwasm/wasm-pack/releases/download/v0.14.0/wasm-pack-v0.14.0-x86_64-unknown-linux-musl.tar.gz | tar xz -C /usr/local/bin --strip-components=1 wasm-pack-v0.14.0-x86_64-unknown-linux-musl/wasm-pack
+        run: bash scripts/install-wasm-pack.sh
       - name: Rust Cache
-        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Setup Node
-        uses: actions/setup-node@6044e13b5dc448c55e2357c09f80417699197238 # v6.2.0
+        uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
         with:
-          node-version: 22.x
+          node-version: 24.x
           cache: yarn
           cache-dependency-path: tests/node/yarn.lock
       - name: Install dependencies
@@ -144,15 +144,50 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@de0fac2e4500dabe0009e67214ff5f5447ce83dd # v6.0.2
+        uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - name: Install Rust toolchain
-        uses: dtolnay/rust-toolchain@e97e2d8cc328f1b50210efc529dca0028893a2d9 # v1
+        uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
         with:
           toolchain: stable
           components: rustfmt, clippy
       - name: Rust Cache
-        uses: Swatinem/rust-cache@401aff9a7a08acb9d27b64936a90db81024cff97 # v2.8.2
+        uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
       - name: Check formatting
         run: cargo fmt --all -- --config format_code_in_doc_comments=true --check
       - name: Run Clippy
-        run: cargo clippy --all-features --all-targets -- -D warnings
+        run: cargo clippy --locked --all-features --all-targets -- -D warnings
+
+  msrv:
+    name: Minimum Rust version (1.88)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: 1.88.0
+          targets: wasm32-unknown-unknown
+      - run: cargo check --locked --all-features --all-targets
+      - run: cargo check --locked --all-features --target wasm32-unknown-unknown
+
+  dependency-audit:
+    name: Dependency advisories
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: dtolnay/rust-toolchain@683b588c487a69d01f6c6ddf40f036ff682cc2c8 # v1
+        with:
+          toolchain: stable
+      - uses: Swatinem/rust-cache@d1527c8f67ef9af357290475d4af4b0fab8f12e0 # v2.9.3
+      - run: cargo install cargo-audit --version 0.22.2 --locked
+      - run: cargo audit --deny warnings
+      - name: Enable Corepack
+        run: corepack enable
+      - uses: actions/setup-node@949feb2413d6458794dcd2491c4babbbce0c15c1 # v7.1.0
+        with:
+          node-version: 24.x
+          cache: yarn
+          cache-dependency-path: tests/node/yarn.lock
+      - run: yarn install --immutable
+        working-directory: tests/node
+      - run: yarn npm audit --all --recursive
+        working-directory: tests/node

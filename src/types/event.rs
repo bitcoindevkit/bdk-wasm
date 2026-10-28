@@ -1,4 +1,4 @@
-use bdk_wallet::event::WalletEvent as BdkWalletEvent;
+use bdk_wallet::WalletEvent as BdkWalletEvent;
 use wasm_bindgen::prelude::wasm_bindgen;
 
 use super::{BlockId, ConfirmationBlockTime, Transaction, Txid};

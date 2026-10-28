@@ -6,12 +6,12 @@ use bdk_wallet::{
     chain::spk_client::{FullScanRequest as BdkFullScanRequest, SyncRequest as BdkSyncRequest},
     KeychainKind,
 };
+use futures_channel::oneshot;
 use wasm_bindgen::{
     prelude::{wasm_bindgen, Closure},
-    JsCast, JsValue,
+    JsCast,
 };
-use wasm_bindgen_futures::JsFuture;
-use web_sys::js_sys::{Function, Promise};
+use web_sys::js_sys::Function;
 
 use crate::{
     result::JsResult,
@@ -74,7 +74,8 @@ impl EsploraClient {
     }
 }
 
-struct WebSleep(JsFuture);
+// Only the Send receiver crosses the Rust async boundary; the JS callback stays local.
+struct WebSleep(oneshot::Receiver<()>);
 
 impl Future for WebSleep {
     type Output = ();
@@ -84,8 +85,12 @@ impl Future for WebSleep {
     }
 }
 
-// SAFETY: Wasm is single-threaded; the value is never accessed concurrently.
-unsafe impl Send for WebSleep {}
+// The global timer works in browsers, web workers, and Node.js.
+#[wasm_bindgen]
+extern "C" {
+    #[wasm_bindgen(js_name = setTimeout)]
+    fn set_timeout(callback: &Function, milliseconds: i32);
+}
 
 #[derive(Clone, Copy)]
 struct WebSleeper;
@@ -94,14 +99,12 @@ impl Sleeper for WebSleeper {
     type Sleep = WebSleep;
 
     fn sleep(dur: Duration) -> Self::Sleep {
-        let ms = dur.as_millis() as i32;
-        let promise = Promise::new(&mut |resolve, _reject| {
-            let cb = Closure::once_into_js(move || resolve.call0(&JsValue::NULL).unwrap());
-            web_sys::window()
-                .unwrap()
-                .set_timeout_with_callback_and_timeout_and_arguments_0(cb.unchecked_ref::<Function>(), ms)
-                .unwrap();
+        let ms = dur.as_millis().min(i32::MAX as u128) as i32;
+        let (sender, receiver) = oneshot::channel();
+        let callback = Closure::once_into_js(move || {
+            let _ = sender.send(());
         });
-        WebSleep(JsFuture::from(promise))
+        set_timeout(callback.unchecked_ref(), ms);
+        WebSleep(receiver)
     }
 }

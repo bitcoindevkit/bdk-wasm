@@ -23,10 +23,14 @@ enum FeePolicy {
 /// generate the transaction.
 ///
 /// Each option setting method on `TxBuilder` takes and returns a new builder so you can chain calls
+///
+/// Fee-bump builders support fee policy, ordering, dust allowance, witness-only UTXOs,
+/// and global xpub metadata. Other settings are rejected by `finish()`.
 #[wasm_bindgen]
 pub struct TxBuilder {
     wallet: Rc<RefCell<BdkWallet>>,
     recipients: Vec<Recipient>,
+    recipients_set: bool,
     utxos: Vec<OutPoint>,
     unspendable: Vec<OutPoint>,
     fee_policy: FeePolicy,
@@ -41,7 +45,6 @@ pub struct TxBuilder {
     version: Option<i32>,
     current_height: Option<u32>,
     only_witness_utxo: bool,
-    include_output_redeem_witness_script: bool,
     add_global_xpubs: bool,
     exact_sequence: Option<u32>,
     data: Option<Vec<u8>>,
@@ -56,9 +59,10 @@ impl TxBuilder {
         TxBuilder {
             wallet,
             recipients: vec![],
+            recipients_set: false,
             utxos: vec![],
             unspendable: vec![],
-            fee_policy: FeePolicy::Rate(FeeRate::new(1)),
+            fee_policy: FeePolicy::Rate(bdk_wallet::bitcoin::FeeRate::BROADCAST_MIN.into()),
             drain_wallet: false,
             allow_dust: false,
             drain_to: None,
@@ -70,7 +74,6 @@ impl TxBuilder {
             version: None,
             current_height: None,
             only_witness_utxo: false,
-            include_output_redeem_witness_script: false,
             add_global_xpubs: false,
             exact_sequence: None,
             data: None,
@@ -89,6 +92,7 @@ impl TxBuilder {
     /// Replace the recipients already added with a new list
     pub fn set_recipients(mut self, recipients: Vec<Recipient>) -> Self {
         self.recipients = recipients;
+        self.recipients_set = true;
         self
     }
 
@@ -235,20 +239,20 @@ impl TxBuilder {
 
     /// Enable Replace-By-Fee (BIP 125) signaling.
     ///
-    /// **Note:** RBF is enabled by default in BDK 2.x (nSequence = `0xFFFFFFFD`).
+    /// **Note:** RBF is enabled by default in BDK (nSequence = `0xFFFFFFFD`).
     /// This method is kept for API compatibility but is effectively a no-op.
     pub fn enable_rbf(self) -> Self {
-        // RBF is enabled by default in BDK 2.x
+        // RBF is enabled by default in BDK
         self
     }
 
     /// Enable Replace-By-Fee (BIP 125) with a specific nSequence value.
     ///
-    /// **Note:** RBF is enabled by default in BDK 2.x. Custom nSequence values
+    /// **Note:** RBF is enabled by default in BDK. Custom nSequence values
     /// are not currently supported through this builder. This method is kept for
     /// API compatibility but is effectively a no-op.
     pub fn enable_rbf_with_sequence(self, _nsequence: u32) -> Self {
-        // RBF is enabled by default in BDK 2.x; custom sequence not supported
+        // RBF is enabled by default in BDK; custom sequence not supported
         self
     }
 
@@ -306,8 +310,8 @@ impl TxBuilder {
     ///
     /// This is useful for signers that always require these fields, such as ColdCard
     /// and BitBox hardware wallets.
-    pub fn include_output_redeem_witness_script(mut self) -> Self {
-        self.include_output_redeem_witness_script = true;
+    /// BDK 3 always includes these fields; retained for JavaScript compatibility.
+    pub fn include_output_redeem_witness_script(self) -> Self {
         self
     }
 
@@ -350,6 +354,27 @@ impl TxBuilder {
         let mut wallet = self.wallet.borrow_mut();
 
         if self.is_fee_bump {
+            if self.recipients_set
+                || !self.recipients.is_empty()
+                || !self.utxos.is_empty()
+                || !self.unspendable.is_empty()
+                || self.drain_wallet
+                || self.drain_to.is_some()
+                || self.min_confirmations.is_some()
+                || self.change_policy.is_some()
+                || self.only_spend_from
+                || self.nlocktime.is_some()
+                || self.version.is_some()
+                || self.current_height.is_some()
+                || self.exact_sequence.is_some()
+                || self.data.is_some()
+            {
+                return Err(BdkError::new(
+                    BdkErrorCode::Unexpected,
+                    "Unsupported fee-bump option: only fee policy, ordering, allow_dust, only_witness_utxo, and add_global_xpubs are supported",
+                    (),
+                ));
+            }
             let txid = self.fee_bump_txid.expect("fee bump txid must be set");
             let mut builder = wallet.build_fee_bump(txid)?;
 
@@ -364,15 +389,11 @@ impl TxBuilder {
 
             builder.ordering(self.ordering.into()).allow_dust(self.allow_dust);
 
-            // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
+            // RBF is enabled by default in BDK (nSequence = 0xFFFFFFFD).
             // No explicit enable_rbf call needed.
 
             if self.only_witness_utxo {
                 builder.only_witness_utxo();
-            }
-
-            if self.include_output_redeem_witness_script {
-                builder.include_output_redeem_witness_script();
             }
 
             if self.add_global_xpubs {
@@ -425,7 +446,7 @@ impl TxBuilder {
             builder.drain_to(drain_recipient.into());
         }
 
-        // RBF is enabled by default in BDK 2.x (nSequence = 0xFFFFFFFD).
+        // RBF is enabled by default in BDK (nSequence = 0xFFFFFFFD).
         // No explicit enable_rbf call needed.
 
         if let Some(locktime) = self.nlocktime {
@@ -442,10 +463,6 @@ impl TxBuilder {
 
         if self.only_witness_utxo {
             builder.only_witness_utxo();
-        }
-
-        if self.include_output_redeem_witness_script {
-            builder.include_output_redeem_witness_script();
         }
 
         if self.add_global_xpubs {

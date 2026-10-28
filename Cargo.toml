@@ -8,35 +8,35 @@ readme = "README.md"
 license = "MIT OR Apache-2.0"
 authors = ["Bitcoin Developers"]
 edition = "2021"
-rust-version = "1.83"
+rust-version = "1.88"
 
 [lib]
 crate-type = ["cdylib", "rlib"]
 
 [features]
 default = []
-esplora = ["bdk_esplora", "wasm-bindgen-futures"]
+esplora = ["bdk_esplora", "wasm-bindgen-futures", "futures-channel"]
 debug = ["console_error_panic_hook"]
 
 [dependencies]
-wasm-bindgen = "0.2.117"
-wasm-bindgen-futures = { version = "0.4.67", optional = true }
-anyhow = { version = "1.0.102", default-features = false }
-serde = { version = "1.0.228", default-features = false, features = ["derive"] }
+wasm-bindgen = "0.2.129"
+futures-channel = { version = "0.3.34", optional = true }
+wasm-bindgen-futures = { version = "0.4.79", optional = true }
+anyhow = { version = "1.0.104", default-features = false }
+serde = { version = "1.0.229", default-features = false, features = ["derive"] }
 serde-wasm-bindgen = "0.6.5"
-web-sys = { version = "0.3.94", default-features = false, features = [
-    "Window",
-] }
+web-sys = { version = "0.3.106", default-features = false }
 
-# Compatibility to compile to WASM
+# Enable the JS entropy backend for BDK's rand 0.8 / rand_core 0.6.
+# A separate getrandom 0.4 dependency would not enable this backend.
 getrandom = { version = "0.2.17", features = ["js"] }
 
 # Bitcoin dependencies
-bdk_wallet = { version = "2.3.0" }
-bdk_esplora = { version = "0.22.2", default-features = false, features = [
+bdk_wallet = { version = "3.2.0" }
+bdk_esplora = { version = "0.22.3", default-features = false, features = [
     "async-https",
 ], optional = true }
-bitcoin = { version = "0.32.8", default-features = false, features = [
+bitcoin = { version = "0.32.102", default-features = false, features = [
     "secp-lowmemory",
 ] }
 
@@ -44,7 +44,7 @@ bitcoin = { version = "0.32.8", default-features = false, features = [
 console_error_panic_hook = { version = "0.1.7", optional = true }
 
 [dev-dependencies]
-wasm-bindgen-test = "0.3.67"
+wasm-bindgen-test = "0.3.79"
 
 [profile.release]
 # Tell `rustc` to optimize for small code size.

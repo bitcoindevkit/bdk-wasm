@@ -1,7 +1,9 @@
 use bdk_wallet::bitcoin::FeeRate as BdkFeeRate;
 use std::collections::HashMap;
 
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+
+use crate::result::JsResult;
 
 /// Map where the key is the confirmation target (in number of blocks) and the value is the estimated feerate (in sat/vB).
 #[wasm_bindgen]
@@ -31,8 +33,11 @@ impl_inner_wrapper!(FeeRate, BdkFeeRate, into_inner);
 #[wasm_bindgen]
 impl FeeRate {
     #[wasm_bindgen(constructor)]
-    pub fn new(sat_vb: u64) -> Self {
-        FeeRate(BdkFeeRate::from_sat_per_vb_unchecked(sat_vb))
+    /// Create a fee rate in sat/vB, rejecting values that overflow sat/kwu.
+    pub fn new(sat_vb: u64) -> JsResult<Self> {
+        BdkFeeRate::from_sat_per_vb(sat_vb)
+            .map(FeeRate)
+            .ok_or_else(|| JsError::new("Fee rate overflows sat/kwu"))
     }
 
     /// Returns raw fee rate.
