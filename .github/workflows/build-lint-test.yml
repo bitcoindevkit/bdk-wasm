@@ -166,8 +166,8 @@ jobs:
         with:
           toolchain: 1.88.0
           targets: wasm32-unknown-unknown
-      - run: cargo check --locked --all-features --all-targets
-      - run: cargo check --locked --all-features --target wasm32-unknown-unknown
+      - run: cargo +1.88.0 check --locked --all-features --all-targets
+      - run: cargo +1.88.0 check --locked --all-features --target wasm32-unknown-unknown
 
   dependency-audit:
     name: Dependency advisories

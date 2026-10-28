@@ -598,16 +598,11 @@ describe(`Esplora client (${network})`, () => {
   });
 
   it("cancel_tx frees the change address from a non-broadcast transaction", () => {
-    // Use a small send relative to balance to guarantee a change output is created.
-    // This ensures BDK reveals a new internal (change) address.
+    // Leave room for change; BDK may reserve an already revealed unused address.
     const balance = wallet.balance.trusted_spendable.to_sat();
-    const sendSats = balance / BigInt(4); // 25% of balance => guaranteed change
+    const sendSats = balance / BigInt(4);
     expect(sendSats).toBeGreaterThan(BigInt(546)); // sanity check
 
-    // Record the internal derivation index before building a new transaction
-    const indexBefore = wallet.next_derivation_index("internal");
-
-    // Build a transaction (which reveals a new change address internally)
     const recipientAddress = wallet.peek_address("external", 7);
     const sendAmount = Amount.from_sat(sendSats);
 
@@ -621,13 +616,19 @@ describe(`Esplora client (${network})`, () => {
 
     const tx = psbt.unsigned_tx;
 
-    // Building the tx should have advanced the internal derivation index
-    // (a new change address was revealed because change > dust threshold)
+    const change = tx.output
+      .map((output) => wallet.derivation_of_spk(output.script_pubkey))
+      .find((spk) => spk?.[0] === "internal");
+    expect(change).toBeDefined();
+    const changeIndex = change![1];
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index))
+      .not.toContain(changeIndex);
     const indexAfterBuild = wallet.next_derivation_index("internal");
-    expect(indexAfterBuild).toBeGreaterThan(indexBefore);
 
-    // Cancel the transaction — should not throw and should unmark the change address
     wallet.cancel_tx(tx);
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index))
+      .toContain(changeIndex);
+    expect(wallet.next_derivation_index("internal")).toBe(indexAfterBuild);
 
     // The derivation index doesn't go back (addresses are revealed permanently),
     // but the change address should now be "unused" (unmarked). We verify by
@@ -644,8 +645,12 @@ describe(`Esplora client (${network})`, () => {
       )
       .finish();
 
-    // After cancel, building a new tx should reuse the freed change index,
-    // so the derivation index should NOT advance further
+    const reusedChange = psbt2.unsigned_tx.output
+      .map((output) => wallet.derivation_of_spk(output.script_pubkey))
+      .find((spk) => spk?.[0] === "internal");
+    expect(reusedChange?.[1]).toBe(changeIndex);
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index))
+      .not.toContain(changeIndex);
     const indexAfterRebuild = wallet.next_derivation_index("internal");
     expect(indexAfterRebuild).toBe(indexAfterBuild);
 

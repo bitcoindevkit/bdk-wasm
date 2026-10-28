@@ -80,7 +80,7 @@ struct WebSleep(oneshot::Receiver<()>);
 impl Future for WebSleep {
     type Output = ();
     fn poll(self: Pin<&mut Self>, cx: &mut Context<'_>) -> Poll<()> {
-        // delegate to the inner JsFuture
+        // Complete when the timer sends or drops its notification.
         Pin::new(&mut self.get_mut().0).poll(cx).map(|_| ())
     }
 }
