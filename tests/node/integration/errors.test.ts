@@ -1,3 +1,4 @@
+import assert from "node:assert/strict";
 import {
   Address,
   Amount,
@@ -10,13 +11,14 @@ describe("Wallet", () => {
   const network: Network = "testnet";
 
   it("catches fine-grained address errors", () => {
+    expect.assertions(6);
     try {
       Address.from_string(
         "tb1qd28npep0s8frcm3y7dxqajkcy2m40eysplyr9v",
         "bitcoin"
       );
     } catch (error) {
-      expect(error).toBeInstanceOf(BdkError);
+      assert(error instanceof BdkError);
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.NetworkValidation);
@@ -27,7 +29,7 @@ describe("Wallet", () => {
     try {
       Address.from_string("notAnAddress", network);
     } catch (error) {
-      expect(error).toBeInstanceOf(BdkError);
+      assert(error instanceof BdkError);
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.Base58);
@@ -37,10 +39,11 @@ describe("Wallet", () => {
   });
 
   it("catches fine-grained amount errors", () => {
+    expect.assertions(3);
     try {
       Amount.from_btc(-100000000);
     } catch (error) {
-      expect(error).toBeInstanceOf(BdkError);
+      assert(error instanceof BdkError);
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.OutOfRange);

@@ -1,6 +1,6 @@
 services:
   esplora:
-    image: blockstream/esplora
+    image: blockstream/esplora@sha256:ef092138f7fcd5f3988441adf056632d64a7b95908896c471355c750a18f4541
     container_name: esplora-regtest
     ports:
       - "8094:80"

@@ -132,9 +132,9 @@ BDK uses a monorepo-ish approach: `bdk_wallet` and `bdk_esplora` versions must b
 
 ## Known Issues
 
-- `SignOptions` is deprecated in BDK 2.2.0+ (signer module moved to `bitcoin::psbt`).
-  We use `#[allow(deprecated)]` until BDK provides a migration path, since `Wallet::sign`
-  still requires it internally.
+- BDK 3.2 deprecates wallet-owned signing and key extraction; `SignOptions` remains supported.
+  The JS API retains these paths with narrowly scoped `#[allow(deprecated)]` annotations.
+  Caller-owned signing is tracked in issue #15.
 - Esplora integration tests use Mutinynet signet which can be flaky.
 
 ## Maintenance Notes

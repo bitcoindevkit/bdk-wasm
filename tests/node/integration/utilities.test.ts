@@ -1,5 +1,6 @@
 import {
   AddressType,
+  FeeRate,
   Network,
   seed_to_descriptor,
   seed_to_xpriv,
@@ -70,5 +71,14 @@ describe("Utilities", () => {
     expect(descriptors.internal).toBe(
       "wpkh([27f9035f/84'/1'/0']tpubDCkv2fHDfPg5hB6bFqJ4fNiins2Z8r5vKtD4xq5irCG2HsUXkgHYsj3gfGTdvAv41hoJeXjfxu7EBQqZMm6SVkxztKFtaaE7HuLdkuL7KNq/1/*)#ltuly67e"
     );
+  });
+});
+
+describe("FeeRate", () => {
+  it("rejects overflowing fee rates without trapping the WASM instance", () => {
+    const maximum = ((1n << 64n) - 1n) / 250n;
+    expect(new FeeRate(maximum).to_sat_per_kwu()).toBe(maximum * 250n);
+    expect(() => new FeeRate(maximum + 1n)).toThrow(/overflows/);
+    expect(new FeeRate(1n).to_sat_per_kwu()).toBe(250n);
   });
 });

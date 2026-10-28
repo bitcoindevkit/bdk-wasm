@@ -1,0 +1,58 @@
+{
+  "network": "regtest",
+  "addressType": "p2wpkh",
+  "external": "wpkh(tprv8ZgxMBicQKsPdDdJFAqvG3mt4VqsVV125X4vsor5NxK366upt6qvovLQqaCi5SJiCE1aLkt3HtxsnTpzeGu27kPC5RUCr4h3oPBPYnAvhdE/84'/1'/0'/0/*)#ggsjqcde",
+  "internal": "wpkh(tprv8ZgxMBicQKsPdDdJFAqvG3mt4VqsVV125X4vsor5NxK366upt6qvovLQqaCi5SJiCE1aLkt3HtxsnTpzeGu27kPC5RUCr4h3oPBPYnAvhdE/84'/1'/0'/1/*)#eu4nadap",
+  "receiveAddress": "bcrt1q022amqf3jv7mg744rcjmst222dfazqvmurt943",
+  "nextAddress": "bcrt1qyetzpamasgppn86fsalhc7elxvs7h2k8dxfgk3",
+  "fundingTx": "020000000111111111111111111111111111111111111111111111111111111111111111110000000000ffffffff01a0860100000000001600147a95dd8131933db47ab51e25b82d4a5353d1019b00000000",
+  "txid": "35d9fc0946d83b3d2eddc79b368c72bed32a557cff1ce3eac96b51eb6925888a",
+  "changeset": {
+    "descriptor": "wpkh([4ba43603/84'/1'/0']tpubDCXZhr2gyU3AsjyhdMmLs8MWsyMTcnjRB5A1UYshxLwaLe6nc9QxFTLUEent47xh2RvUDQekahUW1A3Xr2iTjEsSQqeG3q3JW5YiV9Mrg6z/0/*)#qpnnltzy",
+    "change_descriptor": "wpkh([4ba43603/84'/1'/0']tpubDCXZhr2gyU3AsjyhdMmLs8MWsyMTcnjRB5A1UYshxLwaLe6nc9QxFTLUEent47xh2RvUDQekahUW1A3Xr2iTjEsSQqeG3q3JW5YiV9Mrg6z/1/*)#34kjz7ju",
+    "network": "regtest",
+    "local_chain": {
+      "blocks": {
+        "0": "0f9188f13cb7b2c71f2a335e3a4fc328bf5beb436012afca590b1a11466e2206"
+      }
+    },
+    "tx_graph": {
+      "txs": [
+        {
+          "version": 2,
+          "lock_time": 0,
+          "input": [
+            {
+              "previous_output": "1111111111111111111111111111111111111111111111111111111111111111:0",
+              "script_sig": "",
+              "sequence": 4294967295,
+              "witness": []
+            }
+          ],
+          "output": [
+            {
+              "value": 100000,
+              "script_pubkey": "00147a95dd8131933db47ab51e25b82d4a5353d1019b"
+            }
+          ]
+        }
+      ],
+      "txouts": {},
+      "anchors": [],
+      "last_seen": {
+        "35d9fc0946d83b3d2eddc79b368c72bed32a557cff1ce3eac96b51eb6925888a": 1700000000
+      },
+      "last_evicted": {},
+      "first_seen": {
+        "35d9fc0946d83b3d2eddc79b368c72bed32a557cff1ce3eac96b51eb6925888a": 1700000000
+      }
+    },
+    "indexer": {
+      "last_revealed": {
+        "5321f5f1fd87e56f5c44024b6ffecba4c4f88050aa6c8f6c0bb7bd68cac356af": 1,
+        "96d9d82be2749edf244bccd264b633cc0b5efcf69502102155dc3c22502461c0": 2
+      },
+      "spk_cache": {}
+    }
+  }
+}

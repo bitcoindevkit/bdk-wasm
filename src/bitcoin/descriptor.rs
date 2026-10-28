@@ -116,8 +116,8 @@ where
     let ext_template = constructor(xprv, KeychainKind::External);
     let int_template = constructor(xprv, KeychainKind::Internal);
 
-    let ext = ext_template.build(network)?;
-    let int = int_template.build(network)?;
+    let ext = ext_template.build(network.into())?;
+    let int = int_template.build(network.into())?;
 
     ext.0.sanity_check()?;
     int.0.sanity_check()?;
@@ -138,8 +138,8 @@ where
     let ext_template = constructor(key.clone(), fingerprint, KeychainKind::External);
     let int_template = constructor(key, fingerprint, KeychainKind::Internal);
 
-    let ext = ext_template.build(network)?;
-    let int = int_template.build(network)?;
+    let ext = ext_template.build(network.into())?;
+    let int = int_template.build(network.into())?;
 
     ext.0.sanity_check()?;
     int.0.sanity_check()?;

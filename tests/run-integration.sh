@@ -3,7 +3,7 @@ set -e
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 PROJECT_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
-COMPOSE_FILE="$COMPOSE_FILE"
+COMPOSE_FILE="${COMPOSE_FILE:-$SCRIPT_DIR/docker-compose.yml}"
 
 cleanup() {
   echo "Stopping Docker services..."
@@ -38,7 +38,7 @@ sleep 10
 echo "Running regtest integration tests..."
 cd "$PROJECT_ROOT/tests/node"
 set +e
-NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --testPathPattern='integration/esplora'
+NETWORK=regtest ESPLORA_URL=http://localhost:8094/regtest/api yarn jest --runInBand --testPathPatterns='integration/(esplora|events)'
 TEST_EXIT_CODE=$?
 set -e
 
