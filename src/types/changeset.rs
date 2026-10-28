@@ -3,7 +3,7 @@ use bdk_wallet::{
     serde_json::{from_str, to_string},
     ChangeSet as BdkChangeSet,
 };
-use wasm_bindgen::{prelude::wasm_bindgen, JsError};
+use wasm_bindgen::prelude::wasm_bindgen;
 
 use crate::result::JsResult;
 
@@ -17,17 +17,8 @@ impl_inner_wrapper!(ChangeSet, BdkChangeSet, into_inner);
 #[wasm_bindgen]
 impl ChangeSet {
     /// Merge another [`ChangeSet`] into itself.
-    ///
-    /// Reject conflicting wallet identities before modifying either changeset's data.
-    pub fn merge(&mut self, other: ChangeSet) -> JsResult<()> {
-        if matches!((&self.0.descriptor, &other.0.descriptor), (Some(a), Some(b)) if a != b)
-            || matches!((&self.0.change_descriptor, &other.0.change_descriptor), (Some(a), Some(b)) if a != b)
-            || matches!((self.0.network, other.0.network), (Some(a), Some(b)) if a != b)
-        {
-            return Err(JsError::new("Cannot merge changesets from different wallets"));
-        }
+    pub fn merge(&mut self, other: ChangeSet) {
         self.0.merge(other.into());
-        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {

@@ -1,3 +1,6 @@
+import assert from "node:assert/strict";
+import { readFileSync } from "node:fs";
+import { join } from "node:path";
 import {
   Address,
   Amount,
@@ -5,15 +8,19 @@ import {
   BdkErrorCode,
   Block,
   BlockId,
+  ChangeSet,
   ChangeSpendPolicy,
   EvictedTx,
   FeeRate,
   OutPoint,
   Recipient,
+  SignOptions,
   Txid,
+  UnconfirmedTx,
   Wallet,
 } from "../../../pkg/bitcoindevkit";
 import type { Network } from "../../../pkg/bitcoindevkit";
+import { buildPayment, createFundedWallet } from "../helpers/wallet";
 
 describe("Wallet", () => {
   const network: Network = "testnet";
@@ -48,17 +55,33 @@ describe("Wallet", () => {
     );
   });
 
-  it("loads a previously existing wallet", () => {
-    const loadedWallet = Wallet.load(
-      wallet.take_staged()!,
-      externalDesc,
-      internalDesc
-    );
+  it("loads, signs, and persists an existing wallet", () => {
+    // Captured from main@73cb4df / BDK 2.3.0, using public seed 0x01 repeated
+    // 32 times and synthetic funding. Keep the old changeset unchanged.
+    const fixture = JSON.parse(readFileSync(join(__dirname, "../fixtures/bdk-2.3.0.json"), "utf8"));
+    const changeset = ChangeSet.from_json(JSON.stringify(fixture.changeset));
+    const restored = Wallet.load(changeset, fixture.external, fixture.internal);
+    expect(restored.network).toBe("regtest");
+    expect(restored.peek_address("external", 0).address.toString()).toBe(fixture.receiveAddress);
+    expect(restored.next_derivation_index("external")).toBe(3);
+    expect(restored.next_derivation_index("internal")).toBe(2);
+    expect(restored.balance.total.to_sat()).toBe(100000n);
+    expect(restored.transactions().map((tx) => tx.txid.toString())).toEqual([fixture.txid]);
+    expect(restored.reveal_next_address("external").address.toString()).toBe(fixture.nextAddress);
 
-    expect(loadedWallet.network).toBe(network);
-    expect(
-      loadedWallet.next_unused_address("external").address.toString()
-    ).toBe("tb1qjtgffm20l9vu6a7gacxvpu2ej4kdcsgc26xfdz");
+    const psbt = buildPayment(restored);
+    expect(restored.sign(psbt, new SignOptions())).toBe(true);
+    const tx = psbt.extract_tx();
+    expect(restored.calculate_fee(tx).to_sat()).toBe(1000n);
+    expect(tx.output.reduce((sum, output) => sum + output.value.to_sat(), 0n)).toBe(99000n);
+
+    const aggregate = ChangeSet.from_json(JSON.stringify(fixture.changeset));
+    const staged = restored.take_staged();
+    assert(staged);
+    aggregate.merge(staged);
+    const reloaded = Wallet.load(ChangeSet.from_json(aggregate.to_json()));
+    expect(reloaded.next_derivation_index("external")).toBe(4);
+    expect(reloaded.balance.total.to_sat()).toBe(100000n);
   });
 
   it("creates a single-descriptor wallet", () => {
@@ -443,11 +466,10 @@ describe("Wallet", () => {
           .build_fee_bump(unknownTxid)
           .fee_rate(new FeeRate(BigInt(5)))
           .finish();
-        fail("Expected an error");
+        assert.fail("Expected an error");
       } catch (error) {
-        expect(error).toBeInstanceOf(BdkError);
-      if (!(error instanceof BdkError)) throw error;
-        expect((error as BdkError).code).toBe(
+        assert(error instanceof BdkError);
+        expect(error.code).toBe(
           BdkErrorCode.TransactionNotFound
         );
       }
@@ -463,7 +485,7 @@ describe("Wallet", () => {
   });
 
   it("catches fine-grained errors and deserializes its data", () => {
-    expect.assertions(5);
+    expect.assertions(4);
     // Amount should be too big so we fail with InsufficientFunds
     const sendAmount = Amount.from_sat(BigInt(2000000000));
 
@@ -476,8 +498,7 @@ describe("Wallet", () => {
         )
         .finish();
     } catch (error) {
-      expect(error).toBeInstanceOf(BdkError);
-      if (!(error instanceof BdkError)) throw error;
+      assert(error instanceof BdkError);
 
       const { code, message, data } = error;
       expect(code).toBe(BdkErrorCode.InsufficientFunds);
@@ -632,5 +653,21 @@ describe("Wallet", () => {
       expect(cps.length).toBeGreaterThanOrEqual(1);
       expect(cps[0].height).toBe(0);
     });
+  });
+
+  it("only releases unused addresses when cancelling a transaction", () => {
+    const wallet = createFundedWallet();
+    const psbt = buildPayment(wallet);
+    const tx = psbt.unsigned_tx;
+    const change = tx.output.map((output) => wallet.derivation_of_spk(output.script_pubkey))
+      .find((spk) => spk?.[0] === "internal")!;
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index)).not.toContain(change[1]);
+    wallet.cancel_tx(tx);
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index)).toContain(change[1]);
+    expect(wallet.sign(psbt, new SignOptions())).toBe(true);
+    const signed = psbt.extract_tx();
+    wallet.apply_unconfirmed_txs([new UnconfirmedTx(signed.clone(), 1700000001n)]);
+    wallet.cancel_tx(signed);
+    expect(wallet.list_unused_addresses("internal").map((a) => a.index)).not.toContain(change[1]);
   });
 });

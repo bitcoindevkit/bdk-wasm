@@ -124,5 +124,3 @@ Unless you explicitly state otherwise, any contribution intentionally
 submitted for inclusion in the work by you, as defined in the Apache-2.0
 license, shall be dual licensed as above, without any additional terms or
 conditions.
-
-See the [dependency upgrade assessment](https://github.com/bitcoindevkit/bdk-wasm/blob/main/docs/dependency-upgrade.md) for BDK 3 compatibility, persistence migration, and remaining tooling advisories.
