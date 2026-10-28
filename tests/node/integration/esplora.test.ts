@@ -1,3 +1,4 @@
+import { fail } from "node:assert/strict";
 import { execSync } from "child_process";
 import {
   Amount,

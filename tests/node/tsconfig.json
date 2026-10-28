@@ -6,7 +6,7 @@
     "target": "ES2022",
     "types": [
       "node",
-      "jest"
+      "vitest/globals"
     ],
     "isolatedModules": true
   }

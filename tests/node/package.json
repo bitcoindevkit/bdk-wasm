@@ -3,23 +3,27 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "build": "wasm-pack build --target nodejs --all-features --locked",
-    "test": "jest",
+    "build:debug": "wasm-pack build --dev --target nodejs --all-features --locked",
+    "test": "vitest run --exclude \"integration/{esplora,events}.test.ts\"",
     "clean": "rm -rf node_modules pkg dist build coverage .cache *.log",
-    "typecheck": "tsc --noEmit"
+    "typecheck": "tsc --noEmit",
+    "test:integration": "vitest run integration/esplora.test.ts integration/events.test.ts",
+    "test:signet": "vitest run integration/esplora.test.ts",
+    "test:coverage": "yarn test --coverage"
   },
   "devDependencies": {
-    "@types/jest": "^30.0.0",
+    "@types/node": "^22.0.0",
+    "@vitest/coverage-v8": "^5.0.5",
     "bip39": "^3.1.2",
     "eslint": "^10.13.0",
-    "eslint-plugin-jest": "^29.17.0",
     "globals": "^17.13.0",
-    "jest": "^30.5.2",
-    "ts-jest": "^29.4.15",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.1"
+    "typescript-eslint": "^8.72.1",
+    "vite": "^8.3.5",
+    "vitest": "^5.0.5"
   },
   "packageManager": "yarn@4.18.1",
   "engines": {
-    "node": "^22.13.0 || >=24"
+    "node": "^22.13.0 || ^24.0.0 || >=26.0.0"
   }
 }
