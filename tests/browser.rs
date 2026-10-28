@@ -6,8 +6,9 @@ use bdk_wallet::bitcoin::hex::FromHex;
 use bitcoindevkit::{
     bitcoin::{SignOptions, UnconfirmedTx, Wallet},
     seed_to_descriptor,
-    types::{AddressType, Amount, FeeRate, KeychainKind, Network, Recipient, Transaction},
+    types::{AddressType, Amount, Condition, FeeRate, KeychainKind, Network, Policy, Recipient, Transaction},
 };
+use wasm_bindgen::JsCast;
 use wasm_bindgen_test::*;
 
 wasm_bindgen_test_configure!(run_in_browser);
@@ -46,6 +47,35 @@ fn creates_and_signs_wallet() {
 fn overflowing_fee_rate_is_recoverable() {
     assert!(FeeRate::new(u64::MAX).is_err());
     assert_eq!(FeeRate::new(1).expect("valid fee rate").to_sat_per_kwu(), 250);
+}
+
+#[wasm_bindgen_test]
+fn extracts_spending_conditions_from_a_javascript_path() {
+    let descriptors = seed_to_descriptor(&[1; 32], Network::Regtest, AddressType::P2wpkh).expect("descriptors");
+    let wallet = Wallet::create(Network::Regtest, descriptors.external(), descriptors.internal()).expect("wallet");
+    let descriptor = wallet.public_descriptor(KeychainKind::External);
+    let key = descriptor
+        .strip_prefix("wpkh(")
+        .expect("wpkh")
+        .split(')')
+        .next()
+        .expect("key");
+    let policy = Policy::from_descriptor(&format!("wsh(or_i(pk({key}),and_v(v:pk({key}),older(6))))"))
+        .expect("extract policy")
+        .expect("policy");
+    assert!(policy.requires_path());
+    let missing = web_sys::js_sys::JSON::parse("{}").expect("object");
+    assert!(policy.get_condition(missing.unchecked_into()).is_err());
+    let path = web_sys::js_sys::JSON::parse(&format!(r#"{{"{}":[1]}}"#, policy.id())).expect("path");
+    let condition = policy.get_condition(path.unchecked_into()).expect("condition");
+    assert_eq!(condition.csv(), Some(6));
+    assert_eq!(condition.timelock(), None);
+    let stricter = Condition::new(Some(12.0), Some(500.0)).expect("condition");
+    let combined = condition.merge(&stricter).expect("merge");
+    assert_eq!(combined.csv(), Some(12));
+    assert_eq!(combined.timelock(), Some(500));
+    assert_eq!(condition.csv(), Some(6));
+    assert!(Condition::new(Some(-1.0), None).is_err());
 }
 
 #[cfg(feature = "esplora")]

@@ -58,9 +58,9 @@ jobs:
       - name: Lint
         working-directory: tests/node
         run: yarn lint
-      - name: Check changeset errors in debug WASM
+      - name: Check changesets and spending policies in debug WASM
         working-directory: tests/node
-        run: yarn build:debug && yarn vitest run integration/changeset.test.ts
+        run: yarn build:debug && yarn vitest run integration/changeset.test.ts integration/policy.test.ts
       - name: Test
         working-directory: tests/node
         run: yarn build && yarn typecheck && yarn test:coverage

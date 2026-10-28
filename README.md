@@ -69,6 +69,44 @@ With no direct access to the file system, persistence cannot be handled by BDK d
 
 This essentially means the library only supports [Esplora](https://github.com/blockstream/esplora/blob/master/API.md) as blockchain client. Both RPC and Electrum clients require sockets and will not work for BDK in a WASM environment out of the box.
 
+## Selecting a spending path
+
+Descriptors with alternative timelocks need an explicit spending condition. Use
+`Policy.from_descriptor(wallet.public_descriptor(keychain))` to inspect a public
+policy without wallet-owned signers, then `Policy.get_condition(path)` and
+`TxBuilder.set_condition(condition)` to set its CSV/CLTV requirements.
+
+For the three-branch vault in [#54](https://github.com/bitcoindevkit/bdk-wasm/issues/54),
+the owner + inheritance branch is selected as follows:
+
+```typescript
+const policy = Policy.from_descriptor(wallet.public_descriptor("external"));
+if (!policy) throw new Error("Descriptor has no spending policy");
+const tree = JSON.parse(policy.to_json());
+const condition = policy.get_condition({
+  [tree.id]: [1],          // choose the recovery subtree
+  [tree.items[1].id]: [0], // choose owner + inheritance, with older(1008)
+});
+const psbt = wallet.build_tx()
+  .do_not_spend_change()
+  .set_condition(condition)
+  .add_recipient(recipient)
+  .finish();
+```
+
+The indexes above describe that specific policy; inspect your own tree and use its
+node IDs. If inputs from both keychains may be selected, derive both conditions and
+pass `externalCondition.merge(internalCondition)` instead. Conditions with
+incompatible height/time units cannot be merged. Repeated `set_condition` calls
+replace the previous value.
+
+An immediate path produces an empty condition. Known requirements can also be
+constructed with `new Condition(csv, timelock)`, using consensus nSequence and
+nLockTime values. An explicit condition overrides automatic policy inference;
+callers must ensure it matches every selected input. It does not select signing
+keys, force a witness branch, or establish maturity. Transactions can be signed
+before their timelocks expire; they become spendable only when consensus permits.
+
 ## Development Environment
 
 ### Requirements
