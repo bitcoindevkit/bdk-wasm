@@ -3,6 +3,7 @@
     "lint": "eslint .",
     "lint:fix": "eslint --fix .",
     "build": "wasm-pack build --target nodejs --all-features --locked",
+    "build:debug": "wasm-pack build --dev --target nodejs --all-features --locked",
     "test": "vitest run --exclude \"integration/{esplora,events}.test.ts\"",
     "clean": "rm -rf node_modules pkg dist build coverage .cache *.log",
     "typecheck": "tsc --noEmit",

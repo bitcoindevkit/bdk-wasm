@@ -3,7 +3,7 @@ use bdk_wallet::{
     serde_json::{from_str, to_string},
     ChangeSet as BdkChangeSet,
 };
-use wasm_bindgen::prelude::wasm_bindgen;
+use wasm_bindgen::{prelude::wasm_bindgen, JsError};
 
 use crate::result::JsResult;
 
@@ -17,8 +17,33 @@ impl_inner_wrapper!(ChangeSet, BdkChangeSet, into_inner);
 #[wasm_bindgen]
 impl ChangeSet {
     /// Merge another [`ChangeSet`] into itself.
-    pub fn merge(&mut self, other: ChangeSet) {
+    ///
+    /// Conflicting non-empty descriptors or networks return an error without modifying
+    /// the destination. Missing identity fields are allowed in incremental changesets;
+    /// callers remain responsible for ensuring those changes belong to the same wallet.
+    pub fn merge(&mut self, other: ChangeSet) -> JsResult<()> {
+        // Check BDK's write-once invariants before its infallible merge can mutate state
+        // or trigger a debug assertion across the WASM boundary.
+        for (field, conflicts) in [
+            (
+                "descriptor",
+                matches!((&self.0.descriptor, &other.0.descriptor), (Some(a), Some(b)) if a != b),
+            ),
+            (
+                "change_descriptor",
+                matches!((&self.0.change_descriptor, &other.0.change_descriptor), (Some(a), Some(b)) if a != b),
+            ),
+            (
+                "network",
+                matches!((self.0.network, other.0.network), (Some(a), Some(b)) if a != b),
+            ),
+        ] {
+            if conflicts {
+                return Err(JsError::new(&format!("Cannot merge changesets: conflicting {field}")));
+            }
+        }
         self.0.merge(other.into());
+        Ok(())
     }
 
     pub fn is_empty(&self) -> bool {
