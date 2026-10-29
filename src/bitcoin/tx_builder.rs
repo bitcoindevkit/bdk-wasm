@@ -346,6 +346,30 @@ impl TxBuilder {
     /// including fee bumps. It sets timelocks, not signing keys or a final witness,
     /// and does not verify that the condition matches the descriptor or has matured.
     /// Incompatible explicit version, sequence or locktime options fail in `finish()`.
+    ///
+    /// # JavaScript example
+    ///
+    /// For the three-branch vault in [#54](https://github.com/bitcoindevkit/bdk-wasm/issues/54),
+    /// select the owner + inheritance recovery path as follows. These child indexes
+    /// are specific to that policy; inspect your own tree and use its node IDs.
+    ///
+    /// ```typescript
+    /// const policy = Policy.from_descriptor(wallet.public_descriptor("external"));
+    /// if (!policy) throw new Error("Descriptor has no spending policy");
+    /// const tree = JSON.parse(policy.to_json());
+    /// const condition = policy.get_condition({
+    ///   [tree.id]: [1],          // choose the recovery subtree
+    ///   [tree.items[1].id]: [0], // owner + inheritance, with older(1008)
+    /// });
+    /// const psbt = wallet.build_tx()
+    ///   .do_not_spend_change()
+    ///   .set_condition(condition)
+    ///   .add_recipient(recipient)
+    ///   .finish();
+    /// ```
+    ///
+    /// If inputs from both keychains may be selected, derive both conditions and
+    /// pass `externalCondition.merge(internalCondition)` instead.
     pub fn set_condition(mut self, condition: &Condition) -> Self {
         self.condition = Some(*condition);
         self
