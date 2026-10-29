@@ -7,8 +7,15 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [0.4.0] - 2026-10-29
+
 ### Added
 
+- Caller-owned spending policies and conditions ([#61](https://github.com/bitcoindevkit/bdk-wasm/pull/61), fixes [#54](https://github.com/bitcoindevkit/bdk-wasm/issues/54)):
+  - `Wallet::policies` and `Policy::get_condition` for selecting descriptor branches
+  - `Condition` for inspecting and merging relative and absolute timelock requirements
+  - `TxBuilder::set_condition` for applying the selected requirements to ordinary transactions and fee bumps
+  - Conditions apply to the whole transaction; callers must combine requirements for all inputs. They do not select signing keys, force a witness branch, or make an immature timelock spendable.
 - Expand Wallet API surface ([#21](https://github.com/bitcoindevkit/bdk-wasm/issues/21)):
   - `Wallet::finalize_psbt` for finalizing PSBTs (adding finalized script/witness to inputs)
   - `Wallet::cancel_tx` for releasing reserved change addresses when a transaction won't be broadcast
@@ -37,16 +44,30 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 
+- Require Rust 1.88 or newer for builds. Node development tooling requires Node 22.13+, 24, or newer supported releases.
+- Keep wallet-owned signing, descriptor key extraction, RBF helpers, and cancellation available with BDK 3.2. Caller-owned signing remains a follow-up ([#15](https://github.com/bitcoindevkit/bdk-wasm/issues/15)).
+- Replace Jest with Vitest and remove Node dependency-audit exceptions ([#60](https://github.com/bitcoindevkit/bdk-wasm/pull/60)).
+- Run funded Esplora spending tests exclusively on local regtest, including the output-only PSBT template case. Move the public signet check to a manually dispatched, read-only smoke test with serialized requests and bounded retries; no signet funds are required.
 - Expand Node and regtest integration coverage for wallet address lifecycle, output introspection, fee calculation, and TxBuilder coin-selection behavior ([#22](https://github.com/bitcoindevkit/bdk-wasm/issues/22))
   - Add regtest assertions for `drain_wallet` + `drain_to` producing a single drain output
   - Add regtest assertions for `exclude_unconfirmed` and `exclude_below_confirmations(1)` ignoring trusted pending coins during coin selection
 - Audit and refresh Rust and Node development dependencies to their latest compatible releases ([#24](https://github.com/bitcoindevkit/bdk-wasm/issues/24))
 - Prototype a declarative macro for tuple-wrapper `Deref`/`From` boilerplate while keeping `wasm_bindgen` getters explicit ([#25](https://github.com/bitcoindevkit/bdk-wasm/issues/25))
 
+### Fixed
+
+- Include the full Apache 2.0 and MIT license texts in both npm package archives.
+- Use global timers for Esplora retry backoff in Node.js, browsers, and workers; remove the unsafe timer `Send` assertion ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58)).
+- Throw a recoverable error for fee rates that overflow the internal sat/kwu representation ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58)).
+- Reject conflicting networks or descriptors in `ChangeSet::merge` before mutating the destination ([#60](https://github.com/bitcoindevkit/bdk-wasm/pull/60)). Callers must handle merge errors rather than relying on conflicting wallet identities being accepted.
+- Reject unsupported fee-bump builder options instead of silently ignoring them ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58), fixes [#57](https://github.com/bitcoindevkit/bdk-wasm/issues/57)).
+
 ### Dependencies
 
-- Rust: `bdk_esplora` 0.22.1 → 0.22.2, `wasm-bindgen` 0.2.114 → 0.2.117, `wasm-bindgen-futures` 0.4.64 → 0.4.67, `web-sys` 0.3.91 → 0.3.94, `wasm-bindgen-test` 0.3.64 → 0.3.67
-- Node tests: `eslint` 10.0.2 → 10.2.0, `eslint-plugin-jest` 29.15.0 → 29.15.1, `globals` 17.3.0 → 17.4.0, `jest` 30.2.0 → 30.3.0, `ts-jest` 29.4.6 → 29.4.9, `typescript-eslint` 8.56.1 → 8.58.1
+- Upgrade `bdk_wallet` 2.3.0 → 3.2.0, `bdk_esplora` 0.22.1 → 0.22.3, and `bitcoin` 0.32.8 → 0.32.102 ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58)). The BDK 2.3 persisted-wallet fixture remains loadable and spendable; this is not a guarantee that newer snapshots can be loaded by older versions.
+- Upgrade `wasm-bindgen` to 0.2.129, `wasm-bindgen-futures` to 0.4.79, `web-sys` to 0.3.106, and `wasm-bindgen-test` to 0.3.79; refresh both lockfiles.
+- Update CI actions, checksum-verified wasm-pack installation, and the pinned Esplora regtest image. Enforce locked builds and Rust/Node dependency audits.
+- Node tests: Vitest and its V8 coverage provider 5.0.5, Vite 8.3.5, TypeScript 6.0.3, ESLint 10.13.0, typescript-eslint 8.72.1, and Yarn 4.18.1. Coverage measures generated JavaScript bindings, not Rust/WASM instructions.
 
 ## [0.3.0] - 2026-03-16
 
@@ -124,6 +145,7 @@ Initial release under the [bitcoindevkit](https://github.com/bitcoindevkit) orga
 - CODEOWNERS file
 - Automated npm publishing for `@bitcoindevkit/bdk-wallet-web` and `@bitcoindevkit/bdk-wallet-node`
 
-[Unreleased]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.3.0...HEAD
+[Unreleased]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.4.0...HEAD
+[0.4.0]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/bitcoindevkit/bdk-wasm/compare/v0.2.0...v0.3.0
 [0.2.0]: https://github.com/bitcoindevkit/bdk-wasm/releases/tag/v0.2.0

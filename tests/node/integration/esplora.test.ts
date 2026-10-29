@@ -9,7 +9,6 @@ import {
   EsploraClient,
   EvictedTx,
   FeeRate,
-  Network,
   Recipient,
   SignOptions,
   Psbt,
@@ -18,19 +17,12 @@ import {
   Wallet,
 } from "../../../pkg/bitcoindevkit";
 
-// Network configuration via environment variables.
-// Defaults to Mutinynet signet for backward compatibility.
-// Set ESPLORA_URL and NETWORK to override (e.g. for regtest CI).
-const network: Network = (process.env.NETWORK as Network) || "signet";
-const esploraUrl = process.env.ESPLORA_URL || "https://mutinynet.com/api";
-
-// Expected first external address per network (same descriptor, different bech32 HRP)
-const expectedAddress: Record<string, string> = {
-  signet: "tb1qkn59f87tznmmjw5nu6ng8p7k6vcur2eme637rm",
-  regtest: "bcrt1qkn59f87tznmmjw5nu6ng8p7k6vcur2emmngn5j",
-};
-
-const describeRegtest = network === "regtest" ? describe : describe.skip;
+// Spending tests use the wallet funded by init-esplora.sh, never public signet funds.
+if (process.env.NETWORK && process.env.NETWORK !== "regtest") {
+  throw new Error("Spending tests require regtest; use test:signet for the read-only smoke test");
+}
+const network = "regtest";
+const esploraUrl = process.env.ESPLORA_URL || "http://localhost:8094/regtest/api";
 
 function mineBlocks(count: number): void {
   const address = execSync(
@@ -108,7 +100,7 @@ async function waitForAddressTx(
 // Tests are expected to run in order
 describe(`Esplora client (${network})`, () => {
   const stopGap = 5;
-  const parallelRequests = network === "regtest" ? 1 : 10;
+  const parallelRequests = 1;
   const externalDescriptor =
     "wpkh(tprv8ZgxMBicQKsPd5puBG1xsJ5V53vVPfCy2gnZfsqzmDSDjaQx8LEW4REFvrj6PQMuer7NqZeBiy9iP9ucqJZiveeEGqQ5CvcfV6SPcy8LQR7/84'/1'/0'/0/*)#jjcsy5wd";
   const internalDescriptor =
@@ -122,9 +114,7 @@ describe(`Esplora client (${network})`, () => {
   it("creates a new wallet", () => {
     wallet = Wallet.create(network, externalDescriptor, internalDescriptor);
     const addr = wallet.peek_address("external", 0).address.toString();
-    if (expectedAddress[network]) {
-      expect(addr).toBe(expectedAddress[network]);
-    }
+    expect(addr).toBe("bcrt1qkn59f87tznmmjw5nu6ng8p7k6vcur2emmngn5j");
   });
 
   it("performs full scan on a wallet", async () => {
@@ -673,37 +663,34 @@ describe(`Esplora client (${network})`, () => {
     }).toThrow();
   });
 
-  // PSBT template test only runs on signet (the base64 encodes signet-specific data)
-  if (network === "signet") {
-    it("fills inputs of an output-only Psbt", () => {
-      const psbtBase64 =
-        "cHNidP8BAI4CAAAAAAM1gwEAAAAAACJRIORP1Ndiq325lSC/jMG0RlhATHYmuuULfXgEHUM3u5i4AAAAAAAAAAAxai8AAUSx+i9Igg4HWdcpyagCs8mzuRCklgA7nRMkm69rAAAAAAAAAAAAAQACAAAAACp2AAAAAAAAFgAUtOhUn8sU97k6k+amg4fW0zHBqzsAAAAAAAAAAAA=";
-      const template = Psbt.from_string(psbtBase64);
+  it("fills inputs of an output-only Psbt", () => {
+    const psbtBase64 =
+      "cHNidP8BAI4CAAAAAAM1gwEAAAAAACJRIORP1Ndiq325lSC/jMG0RlhATHYmuuULfXgEHUM3u5i4AAAAAAAAAAAxai8AAUSx+i9Igg4HWdcpyagCs8mzuRCklgA7nRMkm69rAAAAAAAAAAAAAQACAAAAACp2AAAAAAAAFgAUtOhUn8sU97k6k+amg4fW0zHBqzsAAAAAAAAAAAA=";
+    const template = Psbt.from_string(psbtBase64);
 
-      let builder = wallet
-        .build_tx()
-        .fee_rate(new FeeRate(BigInt(1)))
-        .ordering(TxOrdering.Untouched);
+    let builder = wallet
+      .build_tx()
+      .fee_rate(new FeeRate(BigInt(1)))
+      .ordering(TxOrdering.Untouched);
 
-      for (const txout of template.unsigned_tx.output) {
-        if (wallet.is_mine(txout.script_pubkey)) {
-          builder = builder.drain_to(txout.script_pubkey);
-        } else {
-          const recipient = new Recipient(txout.script_pubkey, txout.value);
-          builder = builder.add_recipient(recipient);
-        }
+    for (const txout of template.unsigned_tx.output) {
+      if (wallet.is_mine(txout.script_pubkey)) {
+        builder = builder.drain_to(txout.script_pubkey);
+      } else {
+        const recipient = new Recipient(txout.script_pubkey, txout.value);
+        builder = builder.add_recipient(recipient);
       }
+    }
 
-      const psbt = builder.finish();
-      expect(psbt.unsigned_tx.output).toHaveLength(
-        template.unsigned_tx.output.length
-      );
-      expect(psbt.unsigned_tx.tx_out(2).value.to_btc()).toBeGreaterThan(0);
-    });
-  }
+    const psbt = builder.finish();
+    expect(psbt.unsigned_tx.output).toHaveLength(
+      template.unsigned_tx.output.length
+    );
+    expect(psbt.unsigned_tx.tx_out(2).value.to_btc()).toBeGreaterThan(0);
+  });
 });
 
-describeRegtest("Block application APIs (regtest)", () => {
+describe("Block application APIs (regtest)", () => {
   const stopGap = 5;
   const externalDescriptor =
     "wpkh(tprv8ZgxMBicQKsPf6vydw7ixvsLKY79hmeXujBkGCNCApyft92yVYng2y28JpFZcneBYTTHycWSRpokhHE25GfHPBxnW5GpSm2dMWzEi9xxEyU/84'/1'/0'/0/*)#uel0vg9p";

@@ -7,12 +7,14 @@ describe("Esplora retry timers in Node.js", () => {
   let url: string;
   let requests: number;
   let failCount: number;
+  let failureStatus: number;
 
   beforeEach(async () => {
     requests = 0;
+    failureStatus = 503;
     server = createServer((_request, response) => {
       requests++;
-      response.writeHead(requests <= failCount ? 503 : 200, {
+      response.writeHead(requests <= failCount ? failureStatus : 200, {
         "Content-Type": "application/json",
       });
       response.end(requests <= failCount ? "{}" : '{"1":2}');
@@ -28,14 +30,16 @@ describe("Esplora retry timers in Node.js", () => {
     });
   });
 
-  it("retries a transient HTTP failure without requiring window", async () => {
+  it.each([429, 503])("retries HTTP %i without requiring window", async (status) => {
+    failureStatus = status;
     failCount = 1;
     const estimates = await new EsploraClient(url, 1).get_fee_estimates();
     expect(estimates.get(1)).toBe(2);
     expect(requests).toBe(2);
   }, 10000);
 
-  it("rejects when the configured retry budget is exhausted", async () => {
+  it.each([429, 503])("rejects HTTP %i when the retry budget is exhausted", async (status) => {
+    failureStatus = status;
     failCount = 10;
     await expect(new EsploraClient(url, 1).get_fee_estimates()).rejects.toThrow();
     expect(requests).toBe(2);
