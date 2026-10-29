@@ -26,11 +26,11 @@ jobs:
         run: |
           wasm-pack build --scope bitcoindevkit --target bundler --out-dir pkg-web --features "esplora" --locked
           cd pkg-web
-          jq '.name = "@bitcoindevkit/bdk-wallet-web"' package.json > temp.json && mv temp.json package.json
+          jq '.name = "@bitcoindevkit/bdk-wallet-web" | .files += ["LICENSE-APACHE", "LICENSE-MIT"] | .files |= unique' package.json > temp.json && mv temp.json package.json
           cd ..
           wasm-pack build --scope bitcoindevkit --target nodejs --out-dir pkg-node --all-features --locked
           cd pkg-node
-          jq '.name = "@bitcoindevkit/bdk-wallet-node"' package.json > temp.json && mv temp.json package.json
+          jq '.name = "@bitcoindevkit/bdk-wallet-node" | .files += ["LICENSE-APACHE", "LICENSE-MIT"] | .files |= unique' package.json > temp.json && mv temp.json package.json
           cd ..
       - uses: actions/cache@55cc8345863c7cc4c66a329aec7e433d2d1c52a9 # v6.1.0
         with:

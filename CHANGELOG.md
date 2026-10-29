@@ -56,6 +56,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 
+- Include the full Apache 2.0 and MIT license texts in both npm package archives.
 - Use global timers for Esplora retry backoff in Node.js, browsers, and workers; remove the unsafe timer `Send` assertion ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58)).
 - Throw a recoverable error for fee rates that overflow the internal sat/kwu representation ([#58](https://github.com/bitcoindevkit/bdk-wasm/pull/58)).
 - Reject conflicting networks or descriptors in `ChangeSet::merge` before mutating the destination ([#60](https://github.com/bitcoindevkit/bdk-wasm/pull/60)). Callers must handle merge errors rather than relying on conflicting wallet identities being accepted.
