@@ -2,8 +2,10 @@ import { randomBytes } from "node:crypto";
 import { EsploraClient, Wallet, seed_to_descriptor } from "../../../pkg/bitcoindevkit";
 import type { Network } from "../../../pkg/bitcoindevkit";
 
-const network: Network = process.env.NETWORK === "regtest" ? "regtest" : "signet";
-const url = process.env.ESPLORA_URL || "https://mutinynet.com/api";
+const network: Network = process.env.NETWORK === "signet" ? "signet" : "regtest";
+const url = process.env.ESPLORA_URL || (network === "signet"
+  ? "https://mutinynet.com/api"
+  : "http://localhost:8094/regtest/api");
 
 describe("Read-only Esplora smoke test", () => {
   it("scans and syncs an unfunded wallet and reads fee estimates", async () => {
