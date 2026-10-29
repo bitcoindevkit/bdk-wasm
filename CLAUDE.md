@@ -74,13 +74,17 @@ yarn lint           # runs eslint
 
 Node tests are in `tests/node/integration/`:
 - `wallet.test.ts` — Wallet creation, addresses, descriptors
-- `esplora.test.ts` — Esplora sync, full scan, transaction sending (network-agnostic)
+- `esplora.test.ts` — Esplora sync, full scan, transaction sending on funded regtest
 - `utilities.test.ts` — Amount, Script, Address utilities
 - `errors.test.ts` — Error handling and error codes
 
-`esplora.test.ts` is parameterized via environment variables:
-- `NETWORK` — `signet` (default) or `regtest`
-- `ESPLORA_URL` — defaults to `https://mutinynet.com/api`
+`esplora.test.ts` requires regtest; `ESPLORA_URL` defaults to
+`http://localhost:8094/regtest/api`. Run `bash tests/run-integration.sh` after building
+to start Bitcoin Core/Esplora, mine coins, and fund the test wallets.
+
+The separate `smoke/esplora.test.ts` scans an unfunded watch-only wallet without
+broadcasting. `yarn test:signet` uses Mutinynet by default; `ESPLORA_URL` can select
+another signet Esplora endpoint. No faucet or persistent signet wallet is needed.
 
 ### CI
 
@@ -90,8 +94,9 @@ GitHub Actions runs on every PR:
 - **Node build + test:** Unit tests only (Esplora tests excluded)
 - **Esplora integration tests:** Regtest environment via Docker Compose (`blockstream/esplora`)
 
-On push to main only:
-- **Signet smoke test:** Runs `esplora.test.ts` against Mutinynet signet as a live network check
+On manual dispatch of `signet-smoke.yml`:
+- **Signet smoke test:** Optional read-only public-network check, outside the release gate.
+  The same smoke test also runs against local regtest in required CI.
 
 CI must be green before merging. Clippy treats warnings as errors (`-D warnings`).
 
@@ -136,7 +141,7 @@ BDK uses a monorepo-ish approach: `bdk_wallet` and `bdk_esplora` versions must b
 - BDK 3.2 deprecates wallet-owned signing and key extraction; `SignOptions` remains supported.
   The JS API retains these paths with narrowly scoped `#[allow(deprecated)]` annotations.
   Caller-owned signing is tracked in issue #15.
-- Esplora integration tests use Mutinynet signet which can be flaky.
+- The optional Mutinynet smoke test depends on public service availability and rate limits.
 
 ## Maintenance Notes
 
