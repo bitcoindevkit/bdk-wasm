@@ -8,7 +8,7 @@ use bdk_wallet::{
 use serde::Serialize;
 use wasm_bindgen::prelude::wasm_bindgen;
 
-use crate::types::{Amount, BdkError, BdkErrorCode, FeeRate, OutPoint, Psbt, Recipient, ScriptBuf};
+use crate::types::{Amount, BdkError, BdkErrorCode, Condition, FeeRate, OutPoint, Psbt, Recipient, ScriptBuf};
 
 /// Fee policy: either a rate (sat/vB) or an absolute amount.
 enum FeePolicy {
@@ -25,7 +25,7 @@ enum FeePolicy {
 /// Each option setting method on `TxBuilder` takes and returns a new builder so you can chain calls
 ///
 /// Fee-bump builders support fee policy, ordering, dust allowance, witness-only UTXOs,
-/// and global xpub metadata. Other settings are rejected by `finish()`.
+/// global xpub metadata, and spending conditions. Other settings are rejected by `finish()`.
 #[wasm_bindgen]
 pub struct TxBuilder {
     wallet: Rc<RefCell<BdkWallet>>,
@@ -47,6 +47,7 @@ pub struct TxBuilder {
     only_witness_utxo: bool,
     add_global_xpubs: bool,
     exact_sequence: Option<u32>,
+    condition: Option<Condition>,
     data: Option<Vec<u8>>,
     is_fee_bump: bool,
     fee_bump_txid: Option<bdk_wallet::bitcoin::Txid>,
@@ -76,6 +77,7 @@ impl TxBuilder {
             only_witness_utxo: false,
             add_global_xpubs: false,
             exact_sequence: None,
+            condition: None,
             data: None,
             is_fee_bump: false,
             fee_bump_txid: None,
@@ -334,6 +336,45 @@ impl TxBuilder {
         self
     }
 
+    /// Set the CSV / CLTV requirements for the intended spending path.
+    ///
+    /// Obtain this from `Policy.get_condition()`, or construct a `Condition` when
+    /// the requirements are known. Merge the conditions of all keychains whose
+    /// inputs may be selected. Repeated calls replace the previous condition.
+    ///
+    /// This overrides BDK's automatic policy inference for the entire transaction,
+    /// including fee bumps. It sets timelocks, not signing keys or a final witness,
+    /// and does not verify that the condition matches the descriptor or has matured.
+    /// Incompatible explicit version, sequence or locktime options fail in `finish()`.
+    ///
+    /// # JavaScript example
+    ///
+    /// For the three-branch vault in [#54](https://github.com/bitcoindevkit/bdk-wasm/issues/54),
+    /// select the owner + inheritance recovery path as follows. These child indexes
+    /// are specific to that policy; inspect your own tree and use its node IDs.
+    ///
+    /// ```typescript
+    /// const policy = Policy.from_descriptor(wallet.public_descriptor("external"));
+    /// if (!policy) throw new Error("Descriptor has no spending policy");
+    /// const tree = JSON.parse(policy.to_json());
+    /// const condition = policy.get_condition({
+    ///   [tree.id]: [1],          // choose the recovery subtree
+    ///   [tree.items[1].id]: [0], // owner + inheritance, with older(1008)
+    /// });
+    /// const psbt = wallet.build_tx()
+    ///   .do_not_spend_change()
+    ///   .set_condition(condition)
+    ///   .add_recipient(recipient)
+    ///   .finish();
+    /// ```
+    ///
+    /// If inputs from both keychains may be selected, derive both conditions and
+    /// pass `externalCondition.merge(internalCondition)` instead.
+    pub fn set_condition(mut self, condition: &Condition) -> Self {
+        self.condition = Some(*condition);
+        self
+    }
+
     /// Add an OP_RETURN output with arbitrary data to the transaction.
     ///
     /// The data is embedded in an `OP_RETURN` output with a zero-value amount.
@@ -371,12 +412,16 @@ impl TxBuilder {
             {
                 return Err(BdkError::new(
                     BdkErrorCode::Unexpected,
-                    "Unsupported fee-bump option: only fee policy, ordering, allow_dust, only_witness_utxo, and add_global_xpubs are supported",
+                    "Unsupported fee-bump option: only fee policy, ordering, allow_dust, only_witness_utxo, add_global_xpubs, and set_condition are supported",
                     (),
                 ));
             }
             let txid = self.fee_bump_txid.expect("fee bump txid must be set");
             let mut builder = wallet.build_fee_bump(txid)?;
+
+            if let Some(condition) = self.condition {
+                builder.set_condition(condition.into());
+            }
 
             match self.fee_policy {
                 FeePolicy::Rate(rate) => {
@@ -405,6 +450,10 @@ impl TxBuilder {
         }
 
         let mut builder = wallet.build_tx();
+
+        if let Some(condition) = self.condition {
+            builder.set_condition(condition.into());
+        }
 
         builder
             .ordering(self.ordering.into())
